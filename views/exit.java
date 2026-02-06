@@ -17,12 +17,8 @@ public class exit extends JFrame{
     private Font headerFont = new Font("SansSerif", Font.BOLD, 30);
     private Font contentFont = new Font("SansSerif", Font.BOLD, 20);
     
-    private JTextField name;
-    private JComboBox<String> vehicleType;
     private JTextField licensePlate;
-    private JFormattedTextField dateField;
-    private JComboBox<String> availableSpots;
-    private String ticket;
+   
     public exit()
     {
         setTitle("Exit");
@@ -43,6 +39,7 @@ public class exit extends JFrame{
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);  
 
+    // enter license plate for system to search
         gbc.anchor = GridBagConstraints.EAST;
         gbc.gridx = 0; //left column
         gbc.gridy = 0; //first row
@@ -55,13 +52,18 @@ public class exit extends JFrame{
         gbc.anchor = GridBagConstraints.WEST;
         licensePlate = new JTextField(50);
         content.add(licensePlate, gbc);
+    
+    // finds the vehicle and its entry time, calculates parking duration in hours , calculates the fee based on the spot type and duration
+        gbc.gridwidth = 1;
+        gbc.gridy++; //go to next row
+        gbc.gridx = 0;
 
 
+    // have two buttons here
         gbc.gridwidth = 3;
         gbc.gridy++; //go to next row
         gbc.gridx = 1;
-
-        // have two buttons here
+        
         JButton submit = new JButton("Submit");
         JButton cancel = new JButton("Cancel"); 
 
