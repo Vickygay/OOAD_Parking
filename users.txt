@@ -1,2 +1,2 @@
-Admin1, a12345
-Admin2, a67890
+admin1, a12345
+admin2, a67890
