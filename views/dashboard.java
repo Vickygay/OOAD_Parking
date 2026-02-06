@@ -73,6 +73,15 @@ public class dashboard extends JFrame{
             }
         });
 
+        exit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                new exit().setVisible(true);
+                dispose();
+            }
+        });
+
         content.add(entry, gbc);
         content.add(exit, gbc);
 
