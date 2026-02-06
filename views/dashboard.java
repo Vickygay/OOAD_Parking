@@ -64,6 +64,15 @@ public class dashboard extends JFrame{
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(0, 40, 0, 40);
 
+        entry.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                new home().setVisible(true);
+                dispose();
+            }
+        });
+
         content.add(entry, gbc);
         content.add(exit, gbc);
 
