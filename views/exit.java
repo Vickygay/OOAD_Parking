@@ -5,10 +5,15 @@ import javax.swing.text.DefaultFormatterFactory;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class exit extends JFrame{
     private Color blueColor = new Color(3, 78, 161);
@@ -17,12 +22,13 @@ public class exit extends JFrame{
     private Font headerFont = new Font("SansSerif", Font.BOLD, 30);
     private Font contentFont = new Font("SansSerif", Font.BOLD, 20);
     
-    private JTextField name;
-    private JComboBox<String> vehicleType;
     private JTextField licensePlate;
-    private JFormattedTextField dateField;
-    private JComboBox<String> availableSpots;
-    private String ticket;
+
+    private String vehicleType;
+    private String cardHolder;
+    private String vehiclePlateNumber;
+    private String time;
+   
     public exit()
     {
         setTitle("Exit");
@@ -43,6 +49,7 @@ public class exit extends JFrame{
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);  
 
+    // enter license plate for system to search
         gbc.anchor = GridBagConstraints.EAST;
         gbc.gridx = 0; //left column
         gbc.gridy = 0; //first row
@@ -55,18 +62,18 @@ public class exit extends JFrame{
         gbc.anchor = GridBagConstraints.WEST;
         licensePlate = new JTextField(50);
         content.add(licensePlate, gbc);
-
-
+    
+    // finds the vehicle and its entry time, calculates parking duration in hours , calculates the fee based on the spot type and duration
         gbc.gridwidth = 3;
         gbc.gridy++; //go to next row
         gbc.gridx = 1;
 
         // have two buttons here
-        JButton submit = new JButton("Submit");
-        JButton cancel = new JButton("Cancel"); 
+        JButton submit = new JButton("Generate Bill");
+        JButton cancel = new JButton("Back to home"); 
 
-        submit.setPreferredSize(new Dimension(150, 50));
-        cancel.setPreferredSize(new Dimension(150, 50));
+        submit.setPreferredSize(new Dimension(200, 50));
+        cancel.setPreferredSize(new Dimension(200, 50));
 
         // set font for the text in the button
         submit.setFont(contentFont);
@@ -76,9 +83,13 @@ public class exit extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e)
             {
-                JOptionPane.showMessageDialog(null, "Thank you. \n See you next time! \n");
-                new dashboard().setVisible(true);
-                dispose();
+                String plate = licensePlate.getText().trim();
+                // Search for the car
+                if (readParkingDetails(plate)) {
+                    showBill(); // Only show bill if car is found
+                } else {
+                    JOptionPane.showMessageDialog(null, "Vehicle not found!");
+                }
             }
         });
 
@@ -102,20 +113,134 @@ public class exit extends JFrame{
         add(content, BorderLayout.CENTER);
     }
 
-    // private void save() {
-    //     String nameText = name.getText();
-    //     String licensePlateText = licensePlate.getText().toUpperCase();
-    //     String date = dateField.getText();
-    //     String fileName = "parking.txt"; // The name of the file
+    public boolean readParkingDetails(String searchPlate)
+    {
+        String filePath = "parking.txt"; // Make sure this file exists in your project directory
+        String line;
+        String delimiter = ",";
 
-    //     // Use a try-with-resources block for automatic resource management (Java 7+)
-    //     try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName, true))) {
-    //         bw.write(nameText + "," + (String) vehicleType.getSelectedItem() + "," + licensePlateText + "," + date + "," + (String) availableSpots.getSelectedItem());
-    //         bw.newLine(); 
-            
-    //     } catch (IOException ex) {
-    //         ex.printStackTrace();
-    //         JOptionPane.showMessageDialog(this, "Error saving file: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-    //     }
-    // }
+        // Use try-with-resources to ensure the reader is closed automatically
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            while ((line = br.readLine()) != null) {
+                // Split the line by the comma delimiter
+                String[] data = line.split(delimiter);
+
+                if (data.length >= 5)
+                {
+                    if (data[3].trim().equalsIgnoreCase(searchPlate))
+                    {
+                        vehicleType = data[1];
+                        cardHolder = data[2];
+                        time = data[4];
+                        return true;
+                    }
+                }
+                System.out.println();
+                
+            }
+        } catch (IOException e) {
+            // Handle exceptions such as file not found or read errors
+            System.err.println("An error occurred while reading the file: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public void showBill()
+    {
+        JDialog billDialog = new JDialog(this, "Bill Details", true);
+        billDialog.setSize(400, 300);
+        billDialog.setLayout(new GridBagLayout());
+        billDialog.setLocationRelativeTo(this); //center it to middle of screen
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.anchor = GridBagConstraints.CENTER;  
+
+// • Hours parked 
+// • Parking fee 
+// • Any unpaid fines 
+// • Total payment due
+        long hours = 0;
+        double totalFee = 0;
+        double ratePerHour = 0;
+// TODO: calculate rateperhour
+        if ("Compact".equalsIgnoreCase(this.vehicleType))
+        {
+            ratePerHour = 2;
+        }
+        else if ("Regular".equalsIgnoreCase(this.vehicleType))
+        {
+            ratePerHour = 5;
+        }
+        else if ("Handicapped".equalsIgnoreCase(this.vehicleType) && "Yes".equalsIgnoreCase(this.cardHolder))
+        {
+            ratePerHour = 0;
+        }
+        else if ("Handicapped".equalsIgnoreCase(this.vehicleType) && "No".equalsIgnoreCase(this.vehicleType))
+        {
+            ratePerHour = 2;
+        }        
+        else  // reserved customer: RM10
+        {
+            ratePerHour = 10;
+        }
+        // calculate the hours and fees
+        try
+        {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        java.util.Date entryDate = sdf.parse(this.time);
+        java.util.Date currentDate = new java.util.Date();
+        long diff = currentDate.getTime() - entryDate.getTime();
+
+        hours = diff / (1000 * 60 * 60);
+
+        if (diff % (1000 * 60 * 60) > 0) {
+            hours++;
+        }
+
+        totalFee = hours * ratePerHour;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error parsing date: " + this.time);
+            return; 
+        }
+        
+        gbc.gridx = 0; //left column
+        gbc.gridy = 0; //first row
+        gbc.gridwidth = 1; //span one column
+        
+        JLabel hoursParkedLabel = new JLabel("Hours parked: " + hours + "hours");
+        hoursParkedLabel.setFont(contentFont);
+        billDialog.add(hoursParkedLabel, gbc);
+
+        gbc.gridwidth = 1;
+        gbc.gridy++; //go to next row
+        gbc.gridx = 0;
+        
+        JLabel parkingFeeLabel = new JLabel("Parking Fee: RM" + totalFee);
+        parkingFeeLabel.setFont(contentFont);
+        billDialog.add(parkingFeeLabel, gbc); 
+        
+        gbc.gridwidth = 1;
+        gbc.gridy++; //go to next row
+        gbc.gridx = 0;
+        
+        JLabel unpaidFeeLabel = new JLabel("Unpaid Fee: ");
+        unpaidFeeLabel.setFont(contentFont);
+        billDialog.add(unpaidFeeLabel, gbc);
+        
+        gbc.gridwidth = 1;
+        gbc.gridy++; //go to next row
+        gbc.gridx = 0;
+        
+        JLabel totalPaymentDueLabel = new JLabel("Total Payment Due: ");
+        totalPaymentDueLabel.setFont(contentFont);
+        billDialog.add(totalPaymentDueLabel, gbc);
+
+        billDialog.setVisible(true);
+
+    }
+    
 }
