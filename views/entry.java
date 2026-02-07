@@ -19,6 +19,7 @@ public class entry extends JFrame{
     
     private JTextField name;
     private JComboBox<String> vehicleType;
+    private JComboBox<String> handicappedCard;
     private JTextField licensePlate;
     private JFormattedTextField dateField;
     private JComboBox<String> availableSpots;
@@ -71,6 +72,21 @@ public class entry extends JFrame{
         String[] vehicle = {"Compact", "Regular", "Handicapped", "Reserved"};
         vehicleType = new JComboBox<>(vehicle);
         content.add(vehicleType, gbc);
+
+    // handicapped card holder 
+        gbc.gridwidth = 1;
+        gbc.gridy++; //go to next row
+        gbc.gridx = 0;
+        gbc.anchor = GridBagConstraints.EAST;
+        JLabel handicappedCardLabel = new JLabel("Handicapped card holder : ");
+        handicappedCardLabel.setFont(contentFont);
+        content.add(handicappedCardLabel, gbc);
+
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        String[] card = {"Yes", "No"};
+        handicappedCard = new JComboBox<>(card);
+        content.add(handicappedCard, gbc);
 
     // enter car plate
         gbc.gridwidth = 1;
@@ -177,7 +193,7 @@ public class entry extends JFrame{
 
         // Use a try-with-resources block for automatic resource management (Java 7+)
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName, true))) {
-            bw.write(nameText + "," + (String) vehicleType.getSelectedItem() + "," + licensePlateText + "," + date + "," + (String) availableSpots.getSelectedItem());
+            bw.write(nameText + "," + (String) vehicleType.getSelectedItem() + "," + (String) handicappedCard.getSelectedItem() + "," + licensePlateText + "," + date + "," + (String) availableSpots.getSelectedItem());
             bw.newLine(); 
             
         } catch (IOException ex) {

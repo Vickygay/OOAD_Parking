@@ -25,6 +25,7 @@ public class exit extends JFrame{
     private JTextField licensePlate;
 
     private String vehicleType;
+    private String cardHolder;
     private String vehiclePlateNumber;
     private String time;
    
@@ -63,13 +64,20 @@ public class exit extends JFrame{
         content.add(licensePlate, gbc);
     
     // finds the vehicle and its entry time, calculates parking duration in hours , calculates the fee based on the spot type and duration
-        gbc.gridwidth = 1;
+        gbc.gridwidth = 3;
         gbc.gridy++; //go to next row
-        gbc.gridx = 0;
-        JButton submit = new JButton("Generate Bill");
-        submit.setPreferredSize(new Dimension(250, 50));
+        gbc.gridx = 1;
 
+        // have two buttons here
+        JButton submit = new JButton("Generate Bill");
+        JButton cancel = new JButton("Back to home"); 
+
+        submit.setPreferredSize(new Dimension(200, 50));
+        cancel.setPreferredSize(new Dimension(200, 50));
+
+        // set font for the text in the button
         submit.setFont(contentFont);
+        cancel.setFont(contentFont);
 
         submit.addActionListener(new ActionListener() {
             @Override
@@ -85,7 +93,22 @@ public class exit extends JFrame{
             }
         });
 
-        content.add(submit, gbc);
+        cancel.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                new dashboard().setVisible(true);
+                dispose();
+            }
+        });
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 30, 0));
+        buttonPanel.setBackground(whiteGreyColor);
+        
+        buttonPanel.add(submit);
+        buttonPanel.add(cancel);
+
+        content.add(buttonPanel, gbc);
 
         add(content, BorderLayout.CENTER);
     }
@@ -102,12 +125,13 @@ public class exit extends JFrame{
                 // Split the line by the comma delimiter
                 String[] data = line.split(delimiter);
 
-                if (data.length >= 4)
+                if (data.length >= 5)
                 {
-                    if (data[2].trim().equalsIgnoreCase(searchPlate))
+                    if (data[3].trim().equalsIgnoreCase(searchPlate))
                     {
                         vehicleType = data[1];
-                        time = data[3];
+                        cardHolder = data[2];
+                        time = data[4];
                         return true;
                     }
                 }
@@ -141,22 +165,25 @@ public class exit extends JFrame{
         double totalFee = 0;
         double ratePerHour = 0;
 // TODO: calculate rateperhour
-        if (this.vehicleType == "Compact")
+        if ("Compact".equalsIgnoreCase(this.vehicleType))
         {
             ratePerHour = 2;
         }
-        else if (this.vehicleType == "Regular")
+        else if ("Regular".equalsIgnoreCase(this.vehicleType))
         {
             ratePerHour = 5;
         }
-        else if (this.vehicleType == "Handicapped")
+        else if ("Handicapped".equalsIgnoreCase(this.vehicleType) && "Yes".equalsIgnoreCase(this.cardHolder))
         {
-            ratePerHour = 5;
+            ratePerHour = 0;
         }
-        
-        else
+        else if ("Handicapped".equalsIgnoreCase(this.vehicleType) && "No".equalsIgnoreCase(this.vehicleType))
         {
-            ratePerHour = 5;
+            ratePerHour = 2;
+        }        
+        else  // reserved customer: RM10
+        {
+            ratePerHour = 10;
         }
         // calculate the hours and fees
         try
@@ -192,7 +219,7 @@ public class exit extends JFrame{
         gbc.gridy++; //go to next row
         gbc.gridx = 0;
         
-        JLabel parkingFeeLabel = new JLabel("Parking Fee: " + totalFee);
+        JLabel parkingFeeLabel = new JLabel("Parking Fee: RM" + totalFee);
         parkingFeeLabel.setFont(contentFont);
         billDialog.add(parkingFeeLabel, gbc); 
         
