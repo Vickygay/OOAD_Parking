@@ -97,7 +97,7 @@ public class dashboard extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e)
             {
-                new adminLogin().setVisible(true);
+                new adminlogin().setVisible(true);
                 dispose();
             }
         });
