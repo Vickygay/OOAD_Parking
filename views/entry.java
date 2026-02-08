@@ -81,7 +81,7 @@ public class entry extends JFrame{
 
         gbc.gridx = 1;
         gbc.anchor = GridBagConstraints.WEST;
-        String[] vehicle = {"Compact", "Regular", "Handicapped", "Reserved"};
+        String[] vehicle = {"Motorcycle", "Bicycle", "Car", "SUV", "Truck", "Handicapped"};
         vehicleType = new JComboBox<>(vehicle);
         vehicleType.addActionListener(e -> updateAvailableSpots());
         content.add(vehicleType, gbc);
@@ -99,6 +99,7 @@ public class entry extends JFrame{
         gbc.anchor = GridBagConstraints.WEST;
         String[] card = {"Yes", "No"};
         handicappedCard = new JComboBox<>(card);
+        handicappedCard.setSelectedItem("No");
         handicappedCard.addActionListener(e -> updateAvailableSpots());
         content.add(handicappedCard, gbc);
 
@@ -219,7 +220,7 @@ public class entry extends JFrame{
 
         add(content, BorderLayout.CENTER);
     }
-
+    
     private boolean validateBeforeSubmit() {
         String nameText = name.getText().trim();
         String licensePlateText = licensePlate.getText().trim().toUpperCase();
@@ -247,7 +248,7 @@ public class entry extends JFrame{
         if (selectedType.equalsIgnoreCase("Handicapped")) {
             if (!hasHandicappedCard.equalsIgnoreCase("Yes")) {
                 JOptionPane.showMessageDialog(this, 
-                    "Handicapped card holder must select 'Yes'!", 
+                    "Handicapped vehicle must have handicapped card!", 
                     "Error", JOptionPane.ERROR_MESSAGE);
                 return false;
             }
@@ -263,6 +264,15 @@ public class entry extends JFrame{
         
         parkinglot lot = parkinglot.getInstance();
         parkingspot selectedSpot = lot.findSpotByID(selectedSpotID);
+        
+        if (selectedSpot != null && selectedSpot.getType().equalsIgnoreCase("Reserved")) {
+            if (!isVIPMember(licensePlateText)) {
+                JOptionPane.showMessageDialog(this, 
+                    "You cannot park in a reserved spot without VIP membership!", 
+                    "Invalid Selection", JOptionPane.ERROR_MESSAGE);
+                return false;
+            }
+        }
         
         if (selectedSpot != null && selectedSpot.getType().equalsIgnoreCase("Handicapped")) {
             if (!hasHandicappedCard.equalsIgnoreCase("Yes")) {
@@ -310,18 +320,24 @@ public class entry extends JFrame{
         selectedSpotLabel.setText("No spot selected");
         selectedSpotLabel.setForeground(redColor);
         
-        String selectedType = (String) vehicleType.getSelectedItem();
+        String selectedVehicleType = (String) vehicleType.getSelectedItem();
         String hasHandicappedCard = (String) handicappedCard.getSelectedItem();
         parkinglot lot = parkinglot.getInstance();
         
+        List<String> suitableSpotTypes = getSuitableSpotTypes(selectedVehicleType);
+        
         for (floor f : lot.getFloors()) {
-            List<parkingspot> availableSpots = f.getAvailableSpots(selectedType);
+            List<parkingspot> availableSpots = new ArrayList<>();
+            
+            for (String spotType : suitableSpotTypes) {
+                availableSpots.addAll(f.getAvailableSpots(spotType));
+            }
             
             JPanel floorPanel = new JPanel(new BorderLayout(10, 10));
             floorPanel.setBackground(Color.WHITE);
             
             if (availableSpots.isEmpty()) {
-                JLabel noSpotsLabel = new JLabel("No available " + selectedType + " spots on this floor");
+                JLabel noSpotsLabel = new JLabel("No available spots for " + selectedVehicleType + " on this floor");
                 noSpotsLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
                 noSpotsLabel.setForeground(redColor);
                 noSpotsLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -351,7 +367,9 @@ public class entry extends JFrame{
                     double displayRate = spot.getHourlyRate();
                     String rateText = "RM " + displayRate + "/hr";
                     
-                    if (spot.getType().equalsIgnoreCase("Handicapped") && hasHandicappedCard.equalsIgnoreCase("Yes")) {
+                    if (selectedVehicleType.equalsIgnoreCase("Handicapped") && 
+                        hasHandicappedCard.equalsIgnoreCase("Yes") && 
+                        spot.getType().equalsIgnoreCase("Handicapped")) {
                         displayRate = 0.0;
                         rateText = "RM 0.00/hr (FREE)";
                     }
@@ -378,6 +396,40 @@ public class entry extends JFrame{
             
             floorTabs.addTab("Floor " + f.getFloorNumber(), floorPanel);
         }
+    }
+    
+    private List<String> getSuitableSpotTypes(String vehicleType) {
+        List<String> spotTypes = new ArrayList<>();
+        
+        switch (vehicleType) {
+            case "Motorcycle":
+                spotTypes.add("Compact");
+                break;
+            case "Bicycle":
+                spotTypes.add("Compact");
+                break;
+            case "Car":
+                spotTypes.add("Compact");
+                spotTypes.add("Regular");
+                spotTypes.add("Reserved");
+                break;
+            case "SUV":
+                spotTypes.add("Regular");
+                spotTypes.add("Reserved");
+                break;
+            case "Truck":
+                spotTypes.add("Regular");
+                spotTypes.add("Reserved");
+                break;
+            case "Handicapped":
+                spotTypes.add("Compact");
+                spotTypes.add("Regular");
+                spotTypes.add("Handicapped");
+                spotTypes.add("Reserved");
+                break;
+        }
+        
+        return spotTypes;
     }
     
     private Color getSpotColorByType(String type) {

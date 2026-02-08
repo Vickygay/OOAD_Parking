@@ -285,7 +285,7 @@ public class adminpanel extends JFrame {
                 addDetailRow(contentPanel, "Current Fee:", "RM " + String.format("%.2f", currentFee));
                 
                 if (hoursParked > 24) {
-                    JLabel overstayWarning = new JLabel("⚠ Overstay detected! Fine will apply.");
+                    JLabel overstayWarning = new JLabel("Overstay detected! Fine will apply.");
                     overstayWarning.setFont(new Font("SansSerif", Font.BOLD, 14));
                     overstayWarning.setForeground(redColor);
                     overstayWarning.setAlignmentX(Component.LEFT_ALIGNMENT);

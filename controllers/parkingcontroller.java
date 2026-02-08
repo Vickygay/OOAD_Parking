@@ -40,7 +40,6 @@ public class parkingcontroller {
             bw.write(record.toFileString());
             bw.newLine();
             
-            // Mark spot as occupied
             parkinglot lot = parkinglot.getInstance();
             parkingspot spot = lot.findSpotByID(record.getSpotID());
             if (spot != null) {
@@ -71,14 +70,12 @@ public class parkingcontroller {
             return false;
         }
 
-        // Rewrite file without the exiting vehicle
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(PARKING_FILE))) {
             for (vehiclerecord record : remaining) {
                 bw.write(record.toFileString());
                 bw.newLine();
             }
 
-            // Mark spot as available
             parkinglot lot = parkinglot.getInstance();
             parkingspot spot = lot.findSpotByID(exitingVehicle.getSpotID());
             if (spot != null) {
@@ -100,7 +97,6 @@ public class parkingcontroller {
             long diff = current.getTime() - entry.getTime();
             long hours = diff / (1000 * 60 * 60);
             
-            // Round up
             if (diff % (1000 * 60 * 60) > 0) {
                 hours++;
             }
@@ -122,7 +118,6 @@ public class parkingcontroller {
         long hours = calculateHours(record.getEntryTime());
         double rate = spot.getHourlyRate();
 
-        // Special case: Handicapped card holder in handicapped spot
         if (record.getVehicleType().equalsIgnoreCase("Handicapped") && 
             record.getHandicappedCard().equalsIgnoreCase("Yes") &&
             spot.getType().equalsIgnoreCase("Handicapped")) {
@@ -133,10 +128,6 @@ public class parkingcontroller {
     }
     
     public boolean isReservedSpotMisuse(vehiclerecord record) {
-        if (!record.getVehicleType().equalsIgnoreCase("Reserved")) {
-            return false;
-        }
-        
         parkinglot lot = parkinglot.getInstance();
         parkingspot spot = lot.findSpotByID(record.getSpotID());
         
@@ -174,7 +165,7 @@ public class parkingcontroller {
                 } else if (hours <= 72) {
                     return 150.0;
                 } else {
-                    return 300.0;
+                    return 500.0;
                 }
             case "hourly":
                 return (hours - 24) * 20.0;
@@ -194,7 +185,6 @@ public class parkingcontroller {
                 }
             }
         } catch (IOException e) {
-            // File might not exist yet
         }
         return total;
     }
@@ -224,10 +214,8 @@ public class parkingcontroller {
                 }
             }
         } catch (IOException e) {
-            // File might not exist
         }
 
-        // Rewrite file
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(FINE_FILE))) {
             for (finerecord fine : allFines) {
                 bw.write(fine.toFileString());
@@ -260,7 +248,6 @@ public class parkingcontroller {
                 }
             }
         } catch (IOException e) {
-            // File might not exist
         }
         return total;
     }
@@ -276,7 +263,6 @@ public class parkingcontroller {
                 }
             }
         } catch (IOException e) {
-            // File might not exist
         }
         return unpaid;
     }

@@ -204,60 +204,54 @@ public class exit extends JFrame{
 
         StringBuilder details = new StringBuilder();
         details.append("╔════════════════════════════════════════════════════════════════════╗\n");
-        details.append("║                        PARKING RECEIPT                             ║\n");
+        details.append("║                         PARKING BILL                               ║\n");
         details.append("╚════════════════════════════════════════════════════════════════════╝\n\n");
         
         details.append("VEHICLE INFORMATION:\n");
         details.append("─────────────────────────────────────────────────────────────────────\n");
-        details.append(String.format("  License Plate      : %s\n", currentVehicle.getLicensePlate()));
         details.append(String.format("  Customer Name      : %s\n", currentVehicle.getName()));
+        details.append(String.format("  License Plate      : %s\n", currentVehicle.getLicensePlate()));
         details.append(String.format("  Vehicle Type       : %s\n", currentVehicle.getVehicleType()));
-        details.append(String.format("  Handicapped Card   : %s\n\n", currentVehicle.getHandicappedCard()));
+        details.append(String.format("  Parking Spot       : %s\n\n", currentVehicle.getSpotID()));
         
         details.append("PARKING DETAILS:\n");
         details.append("─────────────────────────────────────────────────────────────────────\n");
-        details.append(String.format("  Parking Spot       : %s\n", currentVehicle.getSpotID()));
-        details.append(String.format("  Spot Type          : %s\n", spot != null ? spot.getType() : "Unknown"));
-        details.append(String.format("  Hourly Rate        : RM %.2f/hour\n", spot != null ? spot.getHourlyRate() : 0.0));
-        
-        if (currentVehicle.getVehicleType().equalsIgnoreCase("Handicapped") && 
-            currentVehicle.getHandicappedCard().equalsIgnoreCase("Yes") &&
-            spot != null && spot.getType().equalsIgnoreCase("Handicapped")) {
-            details.append("  Special Rate       : FREE (Handicapped Card Holder)\n");
-        }
-        
         details.append(String.format("  Entry Time         : %s\n", currentVehicle.getEntryTime()));
         details.append(String.format("  Exit Time          : %s\n", exitTime));
-        details.append(String.format("  Duration           : %d hour(s)\n\n", hoursParked));
-        
-        details.append("PAYMENT BREAKDOWN:\n");
-        details.append("─────────────────────────────────────────────────────────────────────\n");
-        details.append(String.format("  Parking Fee        : RM %.2f  (%d hrs × RM %.2f)\n", 
-            parkingFee, hoursParked, spot != null ? spot.getHourlyRate() : 0.0));
-        
-        if (currentFine > 0) {
-            details.append(String.format("  Overstay Fine      : RM %.2f  (Overstay: %d hours)\n", 
-                currentFine, hoursParked - 24));
-        }
-        
-        if (controller.isReservedSpotMisuse(currentVehicle)) {
-            details.append(String.format("  Reserved Spot Fine : RM 100.00  (Unauthorized use)\n"));
-        }
+        details.append(String.format("  Duration           : %d hour(s)\n", hoursParked));
+        details.append(String.format("  Hourly Rate        : RM %.2f/hour\n", spot != null ? spot.getHourlyRate() : 0.0));
+        details.append(String.format("  Parking Fee        : RM %.2f\n\n", parkingFee));
         
         if (unpaidFines > 0) {
-            details.append(String.format("  Unpaid Fines       : RM %.2f  (Previous fines)\n", unpaidFines));
+            details.append("PREVIOUS FINES:\n");
+            details.append("─────────────────────────────────────────────────────────────────────\n");
+            details.append(String.format("  Unpaid Fines       : RM %.2f\n\n", unpaidFines));
         }
         
-        details.append("─────────────────────────────────────────────────────────────────────\n");
+        if (currentFine > 0) {
+            details.append("CURRENT FINES:\n");
+            details.append("─────────────────────────────────────────────────────────────────────\n");
+            details.append(String.format("  Overstay Fine      : RM %.2f\n", currentFine));
+            details.append(String.format("  (Over 24 hours - %d hours total)\n\n", hoursParked));
+        }
+        
+        if (reservedMisuseFine > 0) {
+            if (currentFine == 0) {
+                details.append("CURRENT FINES:\n");
+                details.append("─────────────────────────────────────────────────────────────────────\n");
+            }
+            details.append(String.format("  Reserved Spot Fine : RM %.2f\n", reservedMisuseFine));
+            details.append("  (Non-VIP parking in reserved spot)\n\n");
+        }
+        
+        details.append("═════════════════════════════════════════════════════════════════════\n");
         details.append(String.format("  TOTAL AMOUNT DUE   : RM %.2f\n", totalDue));
         details.append("═════════════════════════════════════════════════════════════════════\n\n");
         
-        if (hoursParked > 24) {
-            details.append("⚠ WARNING: Vehicle overstayed beyond 24 hours. Fine applied.\n");
-        }
-        
-        if (controller.isReservedSpotMisuse(currentVehicle)) {
-            details.append("⚠ WARNING: Unauthorized use of reserved parking spot. Fine applied.\n");
+        if (currentVehicle.getVehicleType().equalsIgnoreCase("Handicapped") && 
+            currentVehicle.getHandicappedCard().equalsIgnoreCase("Yes") && 
+            spot != null && spot.getType().equalsIgnoreCase("Handicapped")) {
+            details.append("  * Handicapped vehicle in handicapped spot - FREE parking\n");
         }
 
         detailsArea.setText(details.toString());
@@ -410,6 +404,8 @@ public class exit extends JFrame{
         receipt.append("                   Thank you for parking with us!\n");
         receipt.append("                        Drive safely!\n");
 
+        saveReceiptToFile(receipt.toString(), currentVehicle.getLicensePlate(), exitTime);
+
         JTextArea receiptArea = new JTextArea(receipt.toString());
         receiptArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
         receiptArea.setEditable(false);
@@ -426,6 +422,18 @@ public class exit extends JFrame{
 
         new dashboard().setVisible(true);
         dispose();
+    }
+
+    private void saveReceiptToFile(String receiptContent, String licensePlate, String exitTime) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("receipts.txt", true))) {
+            bw.write("================================================================================\n");
+            bw.write("Receipt for: " + licensePlate + " | Date: " + exitTime + "\n");
+            bw.write("================================================================================\n");
+            bw.write(receiptContent);
+            bw.write("\n\n");
+        } catch (IOException e) {
+            System.err.println("Error saving receipt: " + e.getMessage());
+        }
     }
 
     public boolean readParkingDetails(String searchPlate)
