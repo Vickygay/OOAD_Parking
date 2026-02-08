@@ -1,20 +1,19 @@
 package views;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
-import controllers.LoginController;
+import controllers.logincontroller;
 
-public class adminLogin extends JFrame {
+public class adminlogin extends JFrame {
     private JTextField userIDField;
     private JPasswordField passwordField;
     private JButton loginButton;
-    private LoginController controller; // Add Controller variable
-    private Font contentFont = new Font("SansSerif", 1, 20);
+    private logincontroller controller;
+    private Font contentFont = new Font("SansSerif", Font.BOLD, 20);
 
-    public adminLogin() {
-        this.controller = new LoginController(); // Initialize Controller
+    public adminlogin() {
+        this.controller = new logincontroller();
 
-        setTitle("Login System");
+        setTitle("Admin Login");
         setSize(1300, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null); 
@@ -23,7 +22,6 @@ public class adminLogin extends JFrame {
         panel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
-        // User ID field
         JLabel userIDLabel = new JLabel("Admin ID:");
         userIDField = new JTextField(20);
         userIDField.setPreferredSize(new Dimension(500, 40));
@@ -37,7 +35,6 @@ public class adminLogin extends JFrame {
         gbc.gridx = 1;
         panel.add(userIDField, gbc);
 
-        // Password field
         JLabel passwordLabel = new JLabel("Password:");
         passwordField = new JPasswordField(20);
         passwordField.setPreferredSize(new Dimension(500, 40));
@@ -51,7 +48,6 @@ public class adminLogin extends JFrame {
         gbc.gridx = 1;
         panel.add(passwordField, gbc);
 
-        // Login button
         loginButton = new JButton("Login");
         loginButton.setFont(new Font("Arial", Font.BOLD, 18));
         gbc.gridx = 1;
@@ -62,44 +58,34 @@ public class adminLogin extends JFrame {
         getRootPane().setDefaultButton(loginButton);
         add(panel);
 
-        loginButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String userID = userIDField.getText();
-                String password = new String(passwordField.getPassword());
-                
-                boolean loginSuccess = controller.validateLogin(userID, password);
+        loginButton.addActionListener(e -> {
+            String userID = userIDField.getText();
+            String password = new String(passwordField.getPassword());
+            
+            boolean loginSuccess = controller.validateLogin(userID, password);
 
-                if (loginSuccess) {
-                    JOptionPane.showMessageDialog(null, "Login Successful! ");
-                    
-                } else {
-                    showErrorMessage("Invalid credentials or user does not exist!");
-                    clearFields();
-                }
+            if (loginSuccess) {
+                JOptionPane.showMessageDialog(null, "Login Successful!");
+                new adminpanel().setVisible(true);
+                dispose();
+            } else {
+                JOptionPane.showMessageDialog(this, "Invalid credentials!", 
+                    "Login Error", JOptionPane.ERROR_MESSAGE);
+                clearFields();
             }
         });
 
-        JButton back = new JButton("Back to dashboard");
+        JButton back = new JButton("Back to Dashboard");
         back.setFont(contentFont);
-
         back.addActionListener(e -> {
-
-            new dashboard().setVisible(true); //go back to dashboard
-            dispose(); //close login
-        }
-        );
+            new dashboard().setVisible(true);
+            dispose();
+        });
 
         gbc.gridx = 1;
         gbc.gridy = 3;
         gbc.insets = new Insets(20, 10, 10, 10);
         panel.add(back, gbc);
-
-
-    }
-
-    public void showErrorMessage(String message) {
-        JOptionPane.showMessageDialog(this, message, "Login Error", JOptionPane.ERROR_MESSAGE);
     }
 
     public void clearFields() {
