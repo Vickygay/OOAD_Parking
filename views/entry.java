@@ -268,21 +268,8 @@ public class entry extends JFrame{
         parkinglot lot = parkinglot.getInstance();
         parkingspot selectedSpot = lot.findSpotByID(selectedSpotID);
         
-        if (selectedSpot != null && selectedSpot.getType().equalsIgnoreCase("Reserved")) {
-            String selectedVehicleType = (String) vehicleType.getSelectedItem();
-            
-            // Allow handicapped vehicles to park in reserved spots
-            // Fine will be triggered at exit if not VIP (handled in parkingcontroller)
-            if (!selectedVehicleType.equalsIgnoreCase("Handicapped")) {
-                if (!isVIPMember(licensePlateText)) {
-                    JOptionPane.showMessageDialog(this, 
-                        "You cannot park in a reserved spot without VIP membership!", 
-                        "Invalid Selection", JOptionPane.ERROR_MESSAGE);
-                    return false;
-                }
-            }
-            // If handicapped, allow parking but fine may apply at exit if not VIP AND not handicapped card holder
-        }
+        // Reserved spots: Allow anyone to park, fine will be applied at exit if not VIP member
+        // Handicapped spots: Still enforce card requirement for entry
         
         if (selectedSpot != null && selectedSpot.getType().equalsIgnoreCase("Handicapped")) {
             if (!hasHandicappedCard.equalsIgnoreCase("Yes")) {
@@ -295,21 +282,7 @@ public class entry extends JFrame{
         
         return true;
     }
-    
-    private boolean isVIPMember(String plate) {
-        try (BufferedReader br = new BufferedReader(new FileReader("reserved.txt"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (line.trim().equalsIgnoreCase(plate)) {
-                    return true;
-                }
-            }
-        } catch (IOException e) {
-            return false;
-        }
-        return false;
-    }
-    
+     
     private boolean isHandicappedCardHolder(String plate) {
         try (BufferedReader br = new BufferedReader(new FileReader("handicapped.txt"))) {
             String line;
