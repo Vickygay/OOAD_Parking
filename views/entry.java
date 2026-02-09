@@ -13,12 +13,13 @@ import models.*;
 import controllers.*;
 
 public class entry extends JFrame{
+    private Color blackColor = new Color(0, 0, 0);
     private Color blueColor = new Color(3, 78, 161);
     private Color redColor = new Color(255, 7, 7);
     private Color whiteGreyColor = new Color(238,241,241);
     private Color greenColor = new Color(46, 204, 113);
     private Color purpleColor = new Color(155, 89, 182);
-    private Color yellowColor = new Color(241, 196, 15);
+    private Color yellowColor = new Color(255, 255, 51);
     private Color lightBlueColor = new Color(52, 152, 219);
     private Font headerFont = new Font("SansSerif", Font.BOLD, 30);
     private Font contentFont = new Font("SansSerif", Font.BOLD, 20);
@@ -32,13 +33,14 @@ public class entry extends JFrame{
     private JLabel selectedSpotLabel;
     private String selectedSpotID = null;
     private String ticket;
+    @SuppressWarnings("unused")
     private parkingcontroller controller;
     
     public entry()
     {
         controller = new parkingcontroller();
         
-        setTitle("Entry");
+        setTitle("Parking Lot Management System: Select Parking Spot");
         setSize(1300, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -134,6 +136,7 @@ public class entry extends JFrame{
         dateField = new JFormattedTextField(new DefaultFormatterFactory(dateFormatter));
         dateField.setColumns(20);
         dateField.setValue(new Date());
+        dateField.setEditable(false);
         content.add(dateField, gbc);
 
     // choose spot - floor tabs
@@ -172,12 +175,11 @@ public class entry extends JFrame{
         gbc.gridy++;
         gbc.gridx = 0;
 
-        JButton submit = new JButton("Submit");
-        JButton cancel = new JButton("Cancel"); 
+        JButton submit = new JButton("Enter Parking");
+        JButton cancel = new JButton("Back"); 
 
-        submit.setPreferredSize(new Dimension(150, 50));
+        submit.setPreferredSize(new Dimension(200, 50));
         cancel.setPreferredSize(new Dimension(150, 50));
-
         submit.setFont(contentFont);
         cancel.setFont(contentFont);
 
@@ -219,6 +221,7 @@ public class entry extends JFrame{
         content.add(buttonPanel, gbc);
 
         add(content, BorderLayout.CENTER);
+
     }
     
     private boolean validateBeforeSubmit() {
@@ -266,12 +269,19 @@ public class entry extends JFrame{
         parkingspot selectedSpot = lot.findSpotByID(selectedSpotID);
         
         if (selectedSpot != null && selectedSpot.getType().equalsIgnoreCase("Reserved")) {
-            if (!isVIPMember(licensePlateText)) {
-                JOptionPane.showMessageDialog(this, 
-                    "You cannot park in a reserved spot without VIP membership!", 
-                    "Invalid Selection", JOptionPane.ERROR_MESSAGE);
-                return false;
+            String selectedVehicleType = (String) vehicleType.getSelectedItem();
+            
+            // Allow handicapped vehicles to park in reserved spots
+            // Fine will be triggered at exit if not VIP (handled in parkingcontroller)
+            if (!selectedVehicleType.equalsIgnoreCase("Handicapped")) {
+                if (!isVIPMember(licensePlateText)) {
+                    JOptionPane.showMessageDialog(this, 
+                        "You cannot park in a reserved spot without VIP membership!", 
+                        "Invalid Selection", JOptionPane.ERROR_MESSAGE);
+                    return false;
+                }
             }
+            // If handicapped, allow parking but fine may apply at exit if not VIP AND not handicapped card holder
         }
         
         if (selectedSpot != null && selectedSpot.getType().equalsIgnoreCase("Handicapped")) {
@@ -367,23 +377,38 @@ public class entry extends JFrame{
                     double displayRate = spot.getHourlyRate();
                     String rateText = "RM " + displayRate + "/hr";
                     
+                    // Handle handicapped card holder discounts
                     if (selectedVehicleType.equalsIgnoreCase("Handicapped") && 
-                        hasHandicappedCard.equalsIgnoreCase("Yes") && 
-                        spot.getType().equalsIgnoreCase("Handicapped")) {
-                        displayRate = 0.0;
-                        rateText = "RM 0.00/hr (FREE)";
+                        hasHandicappedCard.equalsIgnoreCase("Yes")) {
+                        
+                        double originalRate = spot.getHourlyRate();
+                        double discountedRate = originalRate - 2.0;
+                        
+                        // Cannot go below 0
+                        if (discountedRate < 0) {
+                            discountedRate = 0.0;
+                        }
+                        
+                        if (spot.getType().equalsIgnoreCase("Handicapped")) {
+                            // Handicapped spot: RM 2 - RM 2 = FREE
+                            rateText = "RM 0.00/hr (FREE)";
+                        } else {
+                            // Other spots: Original rate - RM 2 discount
+                            rateText = String.format("RM %.2f/hr (discounted RM 2.00 for handicapped card holder)", discountedRate);
+                        }
+                        
+                        displayRate = discountedRate;
                     }
                     
                     String tooltip = spot.getSpotID() + " - " + spot.getType() + " (" + rateText + ")";
                     spotBtn.setToolTipText(tooltip);
                     
-                    final double finalDisplayRate = displayRate;
                     final String finalRateText = rateText;
                     
                     spotBtn.addActionListener(e -> {
                         selectedSpotID = spot.getSpotID();
                         selectedSpotLabel.setText("Selected: " + spot.getSpotID() + " (" + spot.getType() + " - " + finalRateText + ")");
-                        selectedSpotLabel.setForeground(greenColor);
+                        selectedSpotLabel.setForeground(blackColor);
                     });
                     
                     gridPanel.add(spotBtn);

@@ -13,8 +13,9 @@ public class adminpanel extends JFrame {
     private Color redColor = new Color(231, 76, 60);
     private Color whiteGreyColor = new Color(238, 241, 241);
     private Color purpleColor = new Color(155, 89, 182);
-    private Color yellowColor = new Color(241, 196, 15);
+    private Color yellowColor = new Color(255, 255, 51);
     private Color lightBlueColor = new Color(52, 152, 219);
+    private Color white = new Color(255, 255, 255);
     
     private Font headerFont = new Font("SansSerif", Font.BOLD, 24);
     private Font contentFont = new Font("SansSerif", Font.PLAIN, 14);
@@ -22,10 +23,10 @@ public class adminpanel extends JFrame {
     private parkingcontroller parkingController;
     private JTabbedPane tabbedPane;
 
-    public adminpanel() {
+    public adminpanel(String adminID) {
         parkingController = new parkingcontroller();
 
-        setTitle("Admin Dashboard");
+        setTitle("Admin Dashboard signed in as: " + adminID);
         setSize(1400, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -52,11 +53,15 @@ public class adminpanel extends JFrame {
         JPanel footer = new JPanel(new BorderLayout());
         footer.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         JButton backBtn = new JButton("Logout");
-        backBtn.setFont(contentFont);
+        backBtn.setFont(new Font("SansSerif", Font.BOLD, 16));
         backBtn.addActionListener(e -> {
             new dashboard().setVisible(true);
             dispose();
         });
+        backBtn.setBackground(new Color(255, 0, 0));
+        backBtn.setForeground(Color.WHITE);
+        backBtn.setFocusPainted(false);
+
         footer.add(backBtn, BorderLayout.EAST);
         add(footer, BorderLayout.SOUTH);
     }
@@ -99,7 +104,10 @@ public class adminpanel extends JFrame {
         panel.add(scrollPane, BorderLayout.CENTER);
 
         JButton refreshBtn = new JButton("Refresh");
-        refreshBtn.setFont(contentFont);
+        refreshBtn.setFont(new Font("SansSerif", Font.BOLD, 15));
+        refreshBtn.setBackground(blueColor);
+        refreshBtn.setForeground(white);
+
         refreshBtn.addActionListener(e -> {
             tabbedPane.setComponentAt(0, createOverviewPanel());
         });
@@ -207,7 +215,7 @@ public class adminpanel extends JFrame {
         legendPanel.add(createLegendItem("Reserved", purpleColor, new Color(75, 0, 130)));
         legendPanel.add(createLegendItem("Handicapped", lightBlueColor, new Color(21, 67, 96)));
         legendPanel.add(createLegendItem("Compact", greenColor, new Color(22, 160, 133)));
-        legendPanel.add(createLegendItem("Regular", yellowColor, new Color(183, 149, 11)));
+        legendPanel.add(createLegendItem("Regular", yellowColor, new Color(210, 210, 51) ));
         
         JLabel hintLabel = new JLabel("(Double-click spot for details)");
         hintLabel.setFont(new Font("SansSerif", Font.ITALIC, 11));
@@ -221,7 +229,7 @@ public class adminpanel extends JFrame {
 
     private void showSpotDetails(parkingspot spot) {
         JDialog detailsDialog = new JDialog(this, "Spot Details - " + spot.getSpotID(), true);
-        detailsDialog.setSize(500, 400);
+        detailsDialog.setSize(550, 550);
         detailsDialog.setLocationRelativeTo(this);
         detailsDialog.setLayout(new BorderLayout(15, 15));
         
@@ -269,29 +277,119 @@ public class adminpanel extends JFrame {
                 addDetailRow(contentPanel, "License Plate:", vehicle.getLicensePlate());
                 addDetailRow(contentPanel, "Customer Name:", vehicle.getName());
                 addDetailRow(contentPanel, "Vehicle Type:", vehicle.getVehicleType());
+                addDetailRow(contentPanel, "Handicapped Card:", vehicle.getHandicappedCard());
                 addDetailRow(contentPanel, "Entry Time:", vehicle.getEntryTime());
                 
                 long hoursParked = parkingController.calculateHours(vehicle.getEntryTime());
                 addDetailRow(contentPanel, "Hours Parked:", hoursParked + " hour(s)");
                 
-                double currentFee = hoursParked * spot.getHourlyRate();
+                // Calculate current fee with handicapped discount applied
+                double hourlyRate = spot.getHourlyRate();
                 
+                // Apply handicapped card holder discount (RM 2/hr off)
                 if (vehicle.getVehicleType().equalsIgnoreCase("Handicapped") && 
-                    vehicle.getHandicappedCard().equalsIgnoreCase("Yes") &&
-                    spot.getType().equalsIgnoreCase("Handicapped")) {
-                    currentFee = 0.0;
+                    vehicle.getHandicappedCard().equalsIgnoreCase("Yes")) {
+                    
+                    // Subtract RM 2 discount from hourly rate
+                    hourlyRate = hourlyRate - 2.0;
+                    
+                    // Cannot go below 0
+                    if (hourlyRate < 0) {
+                        hourlyRate = 0.0;
+                    }
                 }
+                
+                double currentFee = hoursParked * hourlyRate;
                 
                 addDetailRow(contentPanel, "Current Fee:", "RM " + String.format("%.2f", currentFee));
                 
+                contentPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+                JSeparator separator2 = new JSeparator();
+                separator2.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+                contentPanel.add(separator2);
+                contentPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+                
+                JLabel fineTitle = new JLabel("Fine Details:");
+                fineTitle.setFont(new Font("SansSerif", Font.BOLD, 16));
+                fineTitle.setForeground(blueColor);
+                fineTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+                contentPanel.add(fineTitle);
+                contentPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+                
+                boolean hasFines = false;
+                double totalFines = 0.0;
+                
                 if (hoursParked > 24) {
-                    JLabel overstayWarning = new JLabel("Overstay detected! Fine will apply.");
-                    overstayWarning.setFont(new Font("SansSerif", Font.BOLD, 14));
-                    overstayWarning.setForeground(redColor);
-                    overstayWarning.setAlignmentX(Component.LEFT_ALIGNMENT);
-                    contentPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-                    contentPanel.add(overstayWarning);
+                    hasFines = true;
+                    double overstayFine = parkingController.calculateFine(vehicle.getLicensePlate(), hoursParked);
+                    totalFines += overstayFine;
+                    
+                    JLabel fineLabel = new JLabel("• Overstay Fine: RM " + String.format("%.2f", overstayFine));
+                    fineLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                    fineLabel.setForeground(redColor);
+                    fineLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    contentPanel.add(fineLabel);
+                    
+                    JLabel fineReason = new JLabel("  (Vehicle stayed more than 24 hours)");
+                    fineReason.setFont(new Font("SansSerif", Font.ITALIC, 12));
+                    fineReason.setForeground(Color.GRAY);
+                    fineReason.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    contentPanel.add(fineReason);
+                    contentPanel.add(Box.createRigidArea(new Dimension(0, 5)));
                 }
+                
+                if (parkingController.isReservedSpotMisuse(vehicle)) {
+                    hasFines = true;
+                    totalFines += 100.0;
+                    
+                    JLabel fineLabel = new JLabel("• Reserved Spot Fine: RM 100.00");
+                    fineLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                    fineLabel.setForeground(redColor);
+                    fineLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    contentPanel.add(fineLabel);
+                    
+                    JLabel fineReason = new JLabel("  (Parked in reserved spot without reservation)");
+                    fineReason.setFont(new Font("SansSerif", Font.ITALIC, 12));
+                    fineReason.setForeground(Color.GRAY);
+                    fineReason.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    contentPanel.add(fineReason);
+                    contentPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+                }
+                
+                double unpaidFines = parkingController.getUnpaidFines(vehicle.getLicensePlate());
+                if (unpaidFines > 0) {
+                    hasFines = true;
+                    totalFines += unpaidFines;
+                    
+                    JLabel fineLabel = new JLabel("• Unpaid Previous Fines: RM " + String.format("%.2f", unpaidFines));
+                    fineLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                    fineLabel.setForeground(redColor);
+                    fineLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    contentPanel.add(fineLabel);
+                    
+                    JLabel fineReason = new JLabel("  (From previous parking sessions)");
+                    fineReason.setFont(new Font("SansSerif", Font.ITALIC, 12));
+                    fineReason.setForeground(Color.GRAY);
+                    fineReason.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    contentPanel.add(fineReason);
+                    contentPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+                }
+                
+                if (!hasFines) {
+                    JLabel noFineLabel = new JLabel("No fines");
+                    noFineLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                    noFineLabel.setForeground(greenColor);
+                    noFineLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    contentPanel.add(noFineLabel);
+                } else {
+                    contentPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+                    JLabel totalFineLabel = new JLabel("Total Fines: RM " + String.format("%.2f", totalFines));
+                    totalFineLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+                    totalFineLabel.setForeground(redColor);
+                    totalFineLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                    contentPanel.add(totalFineLabel);
+                }
+                
             } else {
                 addDetailRow(contentPanel, "License Plate:", spot.getCurrentVehiclePlate());
                 JLabel noDataLabel = new JLabel("(Vehicle data not found in records)");
@@ -380,7 +478,7 @@ public class adminpanel extends JFrame {
                 baseColor = isOccupied ? new Color(22, 160, 133) : greenColor;
                 break;
             case "regular":
-                baseColor = isOccupied ? new Color(183, 149, 11) : yellowColor;
+                baseColor = isOccupied ? new Color(210, 210, 51) : yellowColor;
                 break;
             default:
                 baseColor = Color.GRAY;
@@ -433,7 +531,10 @@ public class adminpanel extends JFrame {
         panel.add(summary, BorderLayout.NORTH);
 
         JButton refreshBtn = new JButton("Refresh");
-        refreshBtn.setFont(contentFont);
+        refreshBtn.setFont(new Font("SansSerif", Font.BOLD, 15));
+        refreshBtn.setBackground(blueColor);
+        refreshBtn.setForeground(white);
+
         refreshBtn.addActionListener(e -> {
             tabbedPane.setComponentAt(1, createCurrentVehiclesPanel());
         });
@@ -451,6 +552,12 @@ public class adminpanel extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         panel.setBackground(whiteGreyColor);
 
+        double totalRevenue = parkingController.getTotalRevenue();
+        double totalUnpaidFines = parkingController.getTotalUnpaidFines();
+
+        JPanel summaryPanel = new JPanel(new GridLayout(1, 2, 15, 0));
+        summaryPanel.setBackground(whiteGreyColor);
+
         JPanel revenueCard = new JPanel(new BorderLayout(10, 10));
         revenueCard.setBackground(Color.WHITE);
         revenueCard.setBorder(BorderFactory.createCompoundBorder(
@@ -459,21 +566,99 @@ public class adminpanel extends JFrame {
         ));
 
         JLabel revenueLabel = new JLabel("Total Revenue Collected");
-        revenueLabel.setFont(new Font("SansSerif", Font.PLAIN, 20));
+        revenueLabel.setFont(new Font("SansSerif", Font.PLAIN, 18));
         revenueLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        JLabel revenueAmount = new JLabel(String.format("RM %.2f", parkingController.getTotalRevenue()));
-        revenueAmount.setFont(new Font("SansSerif", Font.BOLD, 48));
+        JLabel revenueAmount = new JLabel(String.format("RM %.2f", totalRevenue));
+        revenueAmount.setFont(new Font("SansSerif", Font.BOLD, 42));
         revenueAmount.setForeground(greenColor);
         revenueAmount.setHorizontalAlignment(SwingConstants.CENTER);
 
         revenueCard.add(revenueLabel, BorderLayout.NORTH);
         revenueCard.add(revenueAmount, BorderLayout.CENTER);
 
-        panel.add(revenueCard, BorderLayout.NORTH);
+        JPanel unpaidCard = new JPanel(new BorderLayout(10, 10));
+        unpaidCard.setBackground(Color.WHITE);
+        unpaidCard.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(redColor, 3),
+            BorderFactory.createEmptyBorder(30, 30, 30, 30)
+        ));
+
+        JLabel unpaidLabel = new JLabel("Total Unpaid Fines");
+        unpaidLabel.setFont(new Font("SansSerif", Font.PLAIN, 18));
+        unpaidLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        JLabel unpaidAmount = new JLabel(String.format("RM %.2f", totalUnpaidFines));
+        unpaidAmount.setFont(new Font("SansSerif", Font.BOLD, 42));
+        unpaidAmount.setForeground(redColor);
+        unpaidAmount.setHorizontalAlignment(SwingConstants.CENTER);
+
+        unpaidCard.add(unpaidLabel, BorderLayout.NORTH);
+        unpaidCard.add(unpaidAmount, BorderLayout.CENTER);
+
+        summaryPanel.add(revenueCard);
+        summaryPanel.add(unpaidCard);
+
+        panel.add(summaryPanel, BorderLayout.NORTH);
+
+        JPanel tablePanel = new JPanel(new BorderLayout(10, 10));
+        tablePanel.setBackground(whiteGreyColor);
+        tablePanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
+
+        JLabel tableTitle = new JLabel("Revenue Transactions");
+        tableTitle.setFont(new Font("SansSerif", Font.BOLD, 18));
+        tablePanel.add(tableTitle, BorderLayout.NORTH);
+
+        String[] columns = {"Date & Time", "License Plate", "Parking Fee", "Fine", "Fine Amount", "Fine Paid", "Outstanding"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        JTable table = new JTable(model);
+        table.setFont(contentFont);
+        table.setRowHeight(30);
+        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
+        
+        table.getColumnModel().getColumn(0).setPreferredWidth(150);
+        table.getColumnModel().getColumn(1).setPreferredWidth(100);
+        table.getColumnModel().getColumn(2).setPreferredWidth(100);
+        table.getColumnModel().getColumn(3).setPreferredWidth(60);
+        table.getColumnModel().getColumn(4).setPreferredWidth(100);
+        table.getColumnModel().getColumn(5).setPreferredWidth(80);
+        table.getColumnModel().getColumn(6).setPreferredWidth(100);
+
+        List<String[]> transactions = parkingController.getAllRevenueTransactionsWithFines();
+        
+        for (String[] transaction : transactions) {
+            model.addRow(new Object[]{
+                transaction[0],
+                transaction[1],
+                "RM " + transaction[2],
+                transaction[3],
+                transaction[4],
+                transaction[5],
+                transaction[6]
+            });
+        }
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setPreferredSize(new Dimension(0, 300));
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+
+        JLabel transactionCount = new JLabel(String.format("Total Transactions: %d", transactions.size()));
+        transactionCount.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        tablePanel.add(transactionCount, BorderLayout.SOUTH);
+
+        panel.add(tablePanel, BorderLayout.CENTER);
 
         JButton refreshBtn = new JButton("Refresh");
-        refreshBtn.setFont(contentFont);
+        refreshBtn.setFont(new Font("SansSerif", Font.BOLD, 15));
+        refreshBtn.setBackground(blueColor);
+        refreshBtn.setForeground(white);
+
         refreshBtn.addActionListener(e -> {
             tabbedPane.setComponentAt(2, createRevenuePanel());
         });
@@ -554,7 +739,10 @@ public class adminpanel extends JFrame {
         panel.add(tablePanel, BorderLayout.CENTER);
 
         JButton refreshBtn = new JButton("Refresh");
-        refreshBtn.setFont(contentFont);
+        refreshBtn.setFont(new Font("SansSerif", Font.BOLD, 15));
+        refreshBtn.setBackground(blueColor);
+        refreshBtn.setForeground(white);
+
         refreshBtn.addActionListener(e -> {
             tabbedPane.setComponentAt(3, createFinePanel());
         });

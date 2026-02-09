@@ -40,6 +40,7 @@ public class parkingcontroller {
             bw.write(record.toFileString());
             bw.newLine();
             
+            // Mark spot as occupied
             parkinglot lot = parkinglot.getInstance();
             parkingspot spot = lot.findSpotByID(record.getSpotID());
             if (spot != null) {
@@ -70,12 +71,14 @@ public class parkingcontroller {
             return false;
         }
 
+        // Rewrite file without the exiting vehicle
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(PARKING_FILE))) {
             for (vehiclerecord record : remaining) {
                 bw.write(record.toFileString());
                 bw.newLine();
             }
 
+            // Mark spot as available
             parkinglot lot = parkinglot.getInstance();
             parkingspot spot = lot.findSpotByID(exitingVehicle.getSpotID());
             if (spot != null) {
@@ -97,6 +100,7 @@ public class parkingcontroller {
             long diff = current.getTime() - entry.getTime();
             long hours = diff / (1000 * 60 * 60);
             
+            // Round up
             if (diff % (1000 * 60 * 60) > 0) {
                 hours++;
             }
@@ -118,10 +122,17 @@ public class parkingcontroller {
         long hours = calculateHours(record.getEntryTime());
         double rate = spot.getHourlyRate();
 
+        // Apply handicapped card holder discount (RM 2/hr off)
         if (record.getVehicleType().equalsIgnoreCase("Handicapped") && 
-            record.getHandicappedCard().equalsIgnoreCase("Yes") &&
-            spot.getType().equalsIgnoreCase("Handicapped")) {
-            rate = 0;
+            record.getHandicappedCard().equalsIgnoreCase("Yes")) {
+            
+            // Subtract RM 2 discount from hourly rate
+            rate = rate - 2.0;
+            
+            // Cannot go below 0
+            if (rate < 0) {
+                rate = 0.0;
+            }
         }
 
         return hours * rate;
@@ -135,17 +146,24 @@ public class parkingcontroller {
             return false;
         }
         
+        // Check if VIP member (in reserved.txt)
         try (BufferedReader br = new BufferedReader(new FileReader("reserved.txt"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.trim().equalsIgnoreCase(record.getLicensePlate())) {
-                    return false;
+                    return false;  // VIP member, no fine
                 }
             }
         } catch (IOException e) {
         }
         
-        return true;
+        // Exempt handicapped card holders from Reserved spot fine
+        if (record.getVehicleType().equalsIgnoreCase("Handicapped") && 
+            record.getHandicappedCard().equalsIgnoreCase("Yes")) {
+            return false;  // Handicapped card holder, no fine
+        }
+        
+        return true;  // Not VIP and not handicapped card holder = misuse fine applies
     }
 
     public double calculateFine(String plate, long hours) {
@@ -165,7 +183,7 @@ public class parkingcontroller {
                 } else if (hours <= 72) {
                     return 150.0;
                 } else {
-                    return 500.0;
+                    return 300.0;
                 }
             case "hourly":
                 return (hours - 24) * 20.0;
@@ -185,6 +203,7 @@ public class parkingcontroller {
                 }
             }
         } catch (IOException e) {
+            // File might not exist yet
         }
         return total;
     }
@@ -214,8 +233,10 @@ public class parkingcontroller {
                 }
             }
         } catch (IOException e) {
+            // File might not exist
         }
 
+        // Rewrite file
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(FINE_FILE))) {
             for (finerecord fine : allFines) {
                 bw.write(fine.toFileString());
@@ -248,6 +269,7 @@ public class parkingcontroller {
                 }
             }
         } catch (IOException e) {
+            // File might not exist
         }
         return total;
     }
@@ -263,7 +285,138 @@ public class parkingcontroller {
                 }
             }
         } catch (IOException e) {
+            // File might not exist
         }
         return unpaid;
+    }
+
+    public double getTotalUnpaidFines() {
+        double total = 0;
+        for (finerecord fine : getAllUnpaidFines()) {
+            total += fine.getAmount();
+        }
+        return total;
+    }
+
+    public List<String[]> getAllRevenueTransactions() {
+        List<String[]> transactions = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(REVENUE_FILE))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 3) {
+                    String timestamp = parts[0].trim();
+                    String amount = String.format("%.2f", Double.parseDouble(parts[1].trim()));
+                    String description = parts[2].trim();
+                    
+                    String licensePlate = "N/A";
+                    if (description.contains("for ")) {
+                        int index = description.indexOf("for ");
+                        licensePlate = description.substring(index + 4).trim();
+                    }
+                    
+                    transactions.add(new String[]{timestamp, licensePlate, amount, description});
+                }
+            }
+        } catch (IOException e) {
+            // File might not exist
+        }
+        
+        Collections.reverse(transactions);
+        
+        return transactions;
+    }
+
+    public List<String[]> getAllRevenueTransactionsWithFines() {
+        List<String[]> transactions = new ArrayList<>();
+        Map<String, TransactionFineInfo> fineInfoMap = new HashMap<>();
+        
+        try (BufferedReader br = new BufferedReader(new FileReader(FINE_FILE))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                finerecord fine = finerecord.fromFileString(line);
+                if (fine != null) {
+                    String plate = fine.getLicensePlate();
+                    if (!fineInfoMap.containsKey(plate)) {
+                        fineInfoMap.put(plate, new TransactionFineInfo());
+                    }
+                    TransactionFineInfo info = fineInfoMap.get(plate);
+                    info.totalFines += fine.getAmount();
+                    if (fine.isPaid()) {
+                        info.paidFines += fine.getAmount();
+                    } else {
+                        info.unpaidFines += fine.getAmount();
+                    }
+                }
+            }
+        } catch (IOException e) {
+            // File might not exist
+        }
+        
+        try (BufferedReader br = new BufferedReader(new FileReader(REVENUE_FILE))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length >= 3) {
+                    String timestamp = parts[0].trim();
+                    double amount = Double.parseDouble(parts[1].trim());
+                    String description = parts[2].trim();
+                    
+                    String licensePlate = "N/A";
+                    if (description.contains("for ")) {
+                        int index = description.indexOf("for ");
+                        licensePlate = description.substring(index + 4).trim();
+                    }
+                    
+                    String parkingFee = String.format("%.2f", amount);
+                    String hasFine = "No";
+                    String fineAmount = "-";
+                    String finePaid = "-";
+                    String outstanding = "-";
+                    
+                    if (fineInfoMap.containsKey(licensePlate)) {
+                        TransactionFineInfo info = fineInfoMap.get(licensePlate);
+                        if (info.totalFines > 0) {
+                            hasFine = "Yes";
+                            fineAmount = String.format("RM %.2f", info.totalFines);
+                            
+                            if (info.paidFines > 0) {
+                                finePaid = "Yes";
+                            } else {
+                                finePaid = "No";
+                            }
+                            
+                            if (info.unpaidFines > 0) {
+                                outstanding = String.format("RM %.2f", info.unpaidFines);
+                            } else {
+                                outstanding = "-";
+                            }
+                        }
+                    }
+                    
+                    transactions.add(new String[]{
+                        timestamp, 
+                        licensePlate, 
+                        parkingFee, 
+                        hasFine, 
+                        fineAmount, 
+                        finePaid, 
+                        outstanding
+                    });
+                }
+            }
+        } catch (IOException e) {
+            // File might not exist
+        }
+        
+        Collections.reverse(transactions);
+        
+        return transactions;
+    }
+    
+    private static class TransactionFineInfo {
+        double totalFines = 0;
+        double paidFines = 0;
+        double unpaidFines = 0;
     }
 }
