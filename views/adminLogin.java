@@ -16,11 +16,12 @@ public class adminlogin extends JFrame {
         setTitle("Admin Login");
         setSize(1300, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); 
+        setLayout(new BorderLayout());
 
         JPanel panel = new JPanel();
         panel.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
+        add(panel, BorderLayout.NORTH);
 
         JLabel userIDLabel = new JLabel("Admin ID:");
         userIDField = new JTextField(20);
@@ -29,7 +30,7 @@ public class adminlogin extends JFrame {
         userIDField.setFont(new Font("Arial", Font.PLAIN, 16));
 
         gbc.gridx = 0; gbc.gridy = 0;
-        gbc.insets = new Insets(10, 10, 5, 10);
+        gbc.insets = new Insets(5, 5, 5, 5);
         panel.add(userIDLabel, gbc);
 
         gbc.gridx = 1;
@@ -42,7 +43,7 @@ public class adminlogin extends JFrame {
         passwordField.setFont(new Font("Arial", Font.PLAIN, 16));
 
         gbc.gridx = 0; gbc.gridy = 1;
-        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.insets = new Insets(5, 5, 5, 5);
         panel.add(passwordLabel, gbc);
 
         gbc.gridx = 1;
@@ -52,7 +53,7 @@ public class adminlogin extends JFrame {
         loginButton.setFont(new Font("Arial", Font.BOLD, 18));
         gbc.gridx = 1;
         gbc.gridy = 2;
-        gbc.insets = new Insets(20, 10, 10, 10);
+        gbc.insets = new Insets(5, 5, 5, 5);
         panel.add(loginButton, gbc);
 
         getRootPane().setDefaultButton(loginButton);
@@ -66,7 +67,7 @@ public class adminlogin extends JFrame {
 
             if (loginSuccess) {
                 JOptionPane.showMessageDialog(null, "Login Successful!");
-                new adminpanel().setVisible(true);
+                new adminpanel(userID).setVisible(true);
                 dispose();
             } else {
                 JOptionPane.showMessageDialog(this, "Invalid credentials!", 

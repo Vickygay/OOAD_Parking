@@ -1,7 +1,9 @@
 package models;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +15,7 @@ public class parkinglot {
 
     private parkinglot() {
         floors = new ArrayList<>();
-        fineScheme = "fixed"; // default
+        fineScheme = loadFineSchemeFromFile();
         initializeFloors();
         loadOccupiedSpots();
     }
@@ -126,5 +128,26 @@ public class parkinglot {
 
     public void setFineScheme(String scheme) {
         this.fineScheme = scheme;
+        saveFineSchemeToFile(scheme);
+    }
+    
+    private void saveFineSchemeToFile(String scheme) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter("fine_scheme.txt"))) {
+            bw.write(scheme);
+        } catch (IOException e) {
+            System.err.println("Error saving fine scheme: " + e.getMessage());
+        }
+    }
+    
+    private String loadFineSchemeFromFile() {
+        try (BufferedReader br = new BufferedReader(new FileReader("fine_scheme.txt"))) {
+            String line = br.readLine();
+            if (line != null && !line.trim().isEmpty()) {
+                return line.trim();
+            }
+        } catch (IOException e) {
+            // File doesn't exist, use default
+        }
+        return "fixed";
     }
 }
