@@ -26,7 +26,7 @@ public class adminpanel extends JFrame {
     public adminpanel(String adminID) {
         parkingController = new parkingcontroller();
 
-        setTitle("Admin Dashboard signed in as: " + adminID);
+        setTitle("Parking Lot Management System Admin Dashboard signed in as: " + adminID);
         setSize(1400, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());

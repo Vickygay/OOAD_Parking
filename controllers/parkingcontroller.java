@@ -146,24 +146,17 @@ public class parkingcontroller {
             return false;
         }
         
-        // Check if VIP member (in reserved.txt)
         try (BufferedReader br = new BufferedReader(new FileReader("reserved.txt"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.trim().equalsIgnoreCase(record.getLicensePlate())) {
-                    return false;  // VIP member, no fine
+                    return false;
                 }
             }
         } catch (IOException e) {
         }
         
-        // Exempt handicapped card holders from Reserved spot fine
-        if (record.getVehicleType().equalsIgnoreCase("Handicapped") && 
-            record.getHandicappedCard().equalsIgnoreCase("Yes")) {
-            return false;  // Handicapped card holder, no fine
-        }
-        
-        return true;  // Not VIP and not handicapped card holder = misuse fine applies
+        return true;
     }
 
     public double calculateFine(String plate, long hours) {
