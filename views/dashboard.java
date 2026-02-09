@@ -68,7 +68,7 @@ public class dashboard extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e)
             {
-                new home().setVisible(true);
+                new entry().setVisible(true);
                 dispose();
             }
         });
