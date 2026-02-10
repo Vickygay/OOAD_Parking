@@ -1,0 +1,12 @@
+GOLD1,100.0,Reserved spot misuse,paid
+VEV1234,100.0,Reserved spot misuse,paid
+ABC1234,50.0,Overstay fine,paid
+SUV1112,50.0,Overstay fine,unpaid
+XYZ5678,50.0,Overstay fine,unpaid
+SUV9999,100.0,Reserved spot misuse,unpaid
+B112,220.0,Overstay fine,unpaid
+SUV1110,220.0,Overstay fine,unpaid
+SB250,100.0,Reserved spot misuse,paid
+CAT128,540.0,Overstay fine,paid
+CAT128,100.0,Reserved spot misuse,paid
+HCP3333,100.0,Reserved spot misuse,paid
