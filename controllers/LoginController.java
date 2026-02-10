@@ -4,7 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class logincontroller {
+public class LoginController {
     private static final String ADMIN_FILE = "users.txt";
 
     public boolean validateLogin(String userID, String password) {
