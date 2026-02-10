@@ -1,2 +1,2 @@
-GOLD1,100.0,Reserved spot misuse,paid
+GOLD1,100.0,Reserved spot misuse,unpaid
 VEV1234,100.0,Reserved spot misuse,paid
