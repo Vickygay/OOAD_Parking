@@ -5,7 +5,7 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-public class parkingcontroller {
+public class ParkingController {
     private static final String PARKING_FILE = "parking.txt";
     private static final String FINE_FILE = "fines.txt";
     private static final String REVENUE_FILE = "revenue.txt";
@@ -41,7 +41,7 @@ public class parkingcontroller {
             bw.newLine();
             
             // Mark spot as occupied
-            parkinglot lot = parkinglot.getInstance();
+            ParkingLot lot = ParkingLot.getInstance();
             parkingspot spot = lot.findSpotByID(record.getSpotID());
             if (spot != null) {
                 spot.occupy(record.getLicensePlate());
@@ -79,7 +79,7 @@ public class parkingcontroller {
             }
 
             // Mark spot as available
-            parkinglot lot = parkinglot.getInstance();
+            ParkingLot lot = ParkingLot.getInstance();
             parkingspot spot = lot.findSpotByID(exitingVehicle.getSpotID());
             if (spot != null) {
                 spot.vacate();
@@ -112,7 +112,7 @@ public class parkingcontroller {
     }
 
     public double calculateParkingFee(vehiclerecord record) {
-        parkinglot lot = parkinglot.getInstance();
+        ParkingLot lot = ParkingLot.getInstance();
         parkingspot spot = lot.findSpotByID(record.getSpotID());
         
         if (spot == null) {
@@ -139,7 +139,7 @@ public class parkingcontroller {
     }
     
     public boolean isReservedSpotMisuse(vehiclerecord record) {
-        parkinglot lot = parkinglot.getInstance();
+        ParkingLot lot = ParkingLot.getInstance();
         parkingspot spot = lot.findSpotByID(record.getSpotID());
         
         if (spot == null || !spot.getType().equalsIgnoreCase("Reserved")) {
@@ -160,7 +160,7 @@ public class parkingcontroller {
     }
 
     public double calculateFine(String plate, long hours) {
-        parkinglot lot = parkinglot.getInstance();
+        ParkingLot lot = ParkingLot.getInstance();
         String scheme = lot.getFineScheme();
         
         if (hours <= 24) {
@@ -190,7 +190,7 @@ public class parkingcontroller {
         try (BufferedReader br = new BufferedReader(new FileReader(FINE_FILE))) {
             String line;
             while ((line = br.readLine()) != null) {
-                finerecord fine = finerecord.fromFileString(line);
+                FineRecord fine = FineRecord.fromFileString(line);
                 if (fine != null && fine.getLicensePlate().equalsIgnoreCase(plate) && !fine.isPaid()) {
                     total += fine.getAmount();
                 }
@@ -203,7 +203,7 @@ public class parkingcontroller {
 
     public void addFine(String plate, double amount, String reason) {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(FINE_FILE, true))) {
-            finerecord fine = new finerecord(plate, amount, reason);
+            FineRecord fine = new FineRecord(plate, amount, reason);
             bw.write(fine.toFileString());
             bw.newLine();
         } catch (IOException e) {
@@ -212,12 +212,12 @@ public class parkingcontroller {
     }
 
     public void markFinesPaid(String plate) {
-        List<finerecord> allFines = new ArrayList<>();
+        List<FineRecord> allFines = new ArrayList<>();
         
         try (BufferedReader br = new BufferedReader(new FileReader(FINE_FILE))) {
             String line;
             while ((line = br.readLine()) != null) {
-                finerecord fine = finerecord.fromFileString(line);
+                FineRecord fine = FineRecord.fromFileString(line);
                 if (fine != null) {
                     if (fine.getLicensePlate().equalsIgnoreCase(plate)) {
                         fine.setPaid(true);
@@ -231,7 +231,7 @@ public class parkingcontroller {
 
         // Rewrite file
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(FINE_FILE))) {
-            for (finerecord fine : allFines) {
+            for (FineRecord fine : allFines) {
                 bw.write(fine.toFileString());
                 bw.newLine();
             }
@@ -267,12 +267,12 @@ public class parkingcontroller {
         return total;
     }
 
-    public List<finerecord> getAllUnpaidFines() {
-        List<finerecord> unpaid = new ArrayList<>();
+    public List<FineRecord> getAllUnpaidFines() {
+        List<FineRecord> unpaid = new ArrayList<>();
         try (BufferedReader br = new BufferedReader(new FileReader(FINE_FILE))) {
             String line;
             while ((line = br.readLine()) != null) {
-                finerecord fine = finerecord.fromFileString(line);
+                FineRecord fine = FineRecord.fromFileString(line);
                 if (fine != null && !fine.isPaid()) {
                     unpaid.add(fine);
                 }
@@ -285,7 +285,7 @@ public class parkingcontroller {
 
     public double getTotalUnpaidFines() {
         double total = 0;
-        for (finerecord fine : getAllUnpaidFines()) {
+        for (FineRecord fine : getAllUnpaidFines()) {
             total += fine.getAmount();
         }
         return total;
@@ -327,7 +327,7 @@ public class parkingcontroller {
         try (BufferedReader br = new BufferedReader(new FileReader(FINE_FILE))) {
             String line;
             while ((line = br.readLine()) != null) {
-                finerecord fine = finerecord.fromFileString(line);
+                FineRecord fine = FineRecord.fromFileString(line);
                 if (fine != null) {
                     String plate = fine.getLicensePlate();
                     if (!fineInfoMap.containsKey(plate)) {

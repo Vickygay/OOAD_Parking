@@ -8,7 +8,7 @@ import java.text.SimpleDateFormat;
 import models.*;
 import controllers.*;
 
-public class exit extends JFrame{
+public class Exit extends JFrame{
     private Color blueColor = new Color(3, 78, 161);
     private Color whiteGreyColor = new Color(238,241,241);
     private Font headerFont = new Font("SansSerif", Font.BOLD, 30);
@@ -24,11 +24,11 @@ public class exit extends JFrame{
     private double currentSessionFines;
     private double totalDue;
     private long hoursParked;
-    private parkingcontroller controller;
+    private ParkingController controller;
    
-    public exit()
+    public Exit()
     {
-        controller = new parkingcontroller();
+        controller = new ParkingController();
         
         setTitle("Exit");
         setSize(1300, 700);
@@ -126,7 +126,7 @@ public class exit extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e)
             {
-                new dashboard().setVisible(true);
+                new Dashboard().setVisible(true);
                 dispose();
             }
         });
@@ -178,7 +178,7 @@ public class exit extends JFrame{
         currentSessionFines = overstayFine + reservedMisuseFine;
         totalDue = parkingFee + unpaidFines + currentSessionFines;
 
-        parkinglot lot = parkinglot.getInstance();
+        ParkingLot lot = ParkingLot.getInstance();
         parkingspot spot = lot.findSpotByID(currentVehicle.getSpotID());
         
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -496,7 +496,7 @@ public class exit extends JFrame{
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String exitTime = sdf.format(new java.util.Date());
 
-        parkinglot lot = parkinglot.getInstance();
+        ParkingLot lot = ParkingLot.getInstance();
         parkingspot spot = lot.findSpotByID(currentVehicle.getSpotID());
 
         StringBuilder receipt = new StringBuilder();
@@ -571,7 +571,7 @@ public class exit extends JFrame{
             JOptionPane.INFORMATION_MESSAGE
         );
 
-        new dashboard().setVisible(true);
+        new Dashboard().setVisible(true);
         dispose();
     }
 }

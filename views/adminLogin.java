@@ -1,17 +1,32 @@
 package views;
+
 import javax.swing.*;
 import java.awt.*;
-import controllers.logincontroller;
+import controllers.LoginController;
 
-public class adminlogin extends JFrame {
+/**
+ * AdminLogin.java
+ * 
+ * PURPOSE:
+ * - Provides login interface for administrators
+ * - Validates admin credentials against users.txt
+ * - Redirects to AdminPanel upon successful login
+ * 
+ * FEATURES:
+ * - Username and password input fields
+ * - Login validation through logincontroller
+ * - Back button to return to main dashboard
+ * - Clear fields on failed login attempt
+ */
+public class AdminLogin extends JFrame {
     private JTextField userIDField;
     private JPasswordField passwordField;
     private JButton loginButton;
-    private logincontroller controller;
+    private LoginController controller;
     private Font contentFont = new Font("SansSerif", Font.BOLD, 20);
 
-    public adminlogin() {
-        this.controller = new logincontroller();
+    public AdminLogin() {
+        this.controller = new LoginController();
 
         setTitle("Admin Login");
         setSize(1300, 700);
@@ -29,7 +44,8 @@ public class adminlogin extends JFrame {
         userIDLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         userIDField.setFont(new Font("Arial", Font.PLAIN, 16));
 
-        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
         gbc.insets = new Insets(5, 5, 5, 5);
         panel.add(userIDLabel, gbc);
 
@@ -42,7 +58,8 @@ public class adminlogin extends JFrame {
         passwordLabel.setFont(new Font("Arial", Font.PLAIN, 18));
         passwordField.setFont(new Font("Arial", Font.PLAIN, 16));
 
-        gbc.gridx = 0; gbc.gridy = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
         gbc.insets = new Insets(5, 5, 5, 5);
         panel.add(passwordLabel, gbc);
 
@@ -57,21 +74,20 @@ public class adminlogin extends JFrame {
         panel.add(loginButton, gbc);
 
         getRootPane().setDefaultButton(loginButton);
-        add(panel);
 
         loginButton.addActionListener(e -> {
             String userID = userIDField.getText();
             String password = new String(passwordField.getPassword());
-            
+
             boolean loginSuccess = controller.validateLogin(userID, password);
 
             if (loginSuccess) {
                 JOptionPane.showMessageDialog(null, "Login Successful!");
-                new adminpanel(userID).setVisible(true);
+                new AdminPanel(userID).setVisible(true);
                 dispose();
             } else {
-                JOptionPane.showMessageDialog(this, "Invalid credentials!", 
-                    "Login Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Invalid credentials!",
+                        "Login Error", JOptionPane.ERROR_MESSAGE);
                 clearFields();
             }
         });
@@ -79,7 +95,7 @@ public class adminlogin extends JFrame {
         JButton back = new JButton("Back to Dashboard");
         back.setFont(contentFont);
         back.addActionListener(e -> {
-            new dashboard().setVisible(true);
+            new Dashboard().setVisible(true);
             dispose();
         });
 

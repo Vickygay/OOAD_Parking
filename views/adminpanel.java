@@ -7,7 +7,7 @@ import controllers.*;
 import models.*;
 import java.util.List;
 
-public class adminpanel extends JFrame {
+public class AdminPanel extends JFrame {
     private Color blueColor = new Color(3, 78, 161);
     private Color greenColor = new Color(46, 204, 113);
     private Color redColor = new Color(231, 76, 60);
@@ -20,11 +20,11 @@ public class adminpanel extends JFrame {
     private Font headerFont = new Font("SansSerif", Font.BOLD, 24);
     private Font contentFont = new Font("SansSerif", Font.PLAIN, 14);
     
-    private parkingcontroller parkingController;
+    private ParkingController parkingController;
     private JTabbedPane tabbedPane;
 
-    public adminpanel(String adminID) {
-        parkingController = new parkingcontroller();
+    public AdminPanel(String adminID) {
+        parkingController = new ParkingController();
 
         setTitle("Parking Lot Management System Admin Dashboard signed in as: " + adminID);
         setSize(1400, 800);
@@ -55,7 +55,7 @@ public class adminpanel extends JFrame {
         JButton backBtn = new JButton("Logout");
         backBtn.setFont(new Font("SansSerif", Font.BOLD, 16));
         backBtn.addActionListener(e -> {
-            new dashboard().setVisible(true);
+            new Dashboard().setVisible(true);
             dispose();
         });
         backBtn.setBackground(new Color(255, 0, 0));
@@ -71,7 +71,7 @@ public class adminpanel extends JFrame {
         panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         panel.setBackground(whiteGreyColor);
 
-        parkinglot lot = parkinglot.getInstance();
+        ParkingLot lot = ParkingLot.getInstance();
         
         JPanel statsPanel = new JPanel(new GridLayout(1, 3, 15, 0));
         statsPanel.setBackground(whiteGreyColor);
@@ -93,7 +93,7 @@ public class adminpanel extends JFrame {
         floorsPanel.setLayout(new BoxLayout(floorsPanel, BoxLayout.Y_AXIS));
         floorsPanel.setBackground(whiteGreyColor);
 
-        for (floor f : lot.getFloors()) {
+        for (Floor f : lot.getFloors()) {
             JPanel floorPanel = createFloorPanel(f);
             floorsPanel.add(floorPanel);
             floorsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
@@ -143,7 +143,7 @@ public class adminpanel extends JFrame {
         return card;
     }
 
-    private JPanel createFloorPanel(floor f) {
+    private JPanel createFloorPanel(Floor f) {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
@@ -505,7 +505,7 @@ public class adminpanel extends JFrame {
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
 
         List<vehiclerecord> activeVehicles = parkingController.getAllParkedVehicles();
-        parkinglot lot = parkinglot.getInstance();
+        ParkingLot lot = ParkingLot.getInstance();
 
         for (vehiclerecord vehicle : activeVehicles) {
             long hoursSoFar = parkingController.calculateHours(vehicle.getEntryTime());
@@ -716,10 +716,10 @@ public class adminpanel extends JFrame {
         table.setRowHeight(30);
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 14));
 
-        List<finerecord> unpaidFines = parkingController.getAllUnpaidFines();
+        List<FineRecord> unpaidFines = parkingController.getAllUnpaidFines();
         double totalUnpaid = 0.0;
 
-        for (finerecord fine : unpaidFines) {
+        for (FineRecord fine : unpaidFines) {
             model.addRow(new Object[]{
                 fine.getLicensePlate(),
                 String.format("RM %.2f", fine.getAmount()),

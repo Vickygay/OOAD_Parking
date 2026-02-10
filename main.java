@@ -1,7 +1,7 @@
-import views.dashboard;
+import views.Dashboard;
 
 public class Main {
     public static void main(String[] args) {
-        new dashboard().setVisible(true);
+        new Dashboard().setVisible(true);
     }
 }

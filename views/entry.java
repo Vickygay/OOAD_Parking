@@ -1,4 +1,5 @@
 package views;
+
 import javax.swing.*;
 import javax.swing.text.DateFormatter;
 import javax.swing.text.DefaultFormatterFactory;
@@ -12,18 +13,46 @@ import java.util.ArrayList;
 import models.*;
 import controllers.*;
 
-public class entry extends JFrame{
+/**
+ * Entry.java
+ * 
+ * PURPOSE:
+ * - Handles vehicle entry and parking spot selection
+ * - Collects customer information (name, vehicle type, license plate)
+ * - Displays available parking spots by floor
+ * - Validates parking eligibility (handicapped cards, spot types)
+ * - Generates parking ticket upon successful entry
+ * 
+ * FEATURES:
+ * - Dynamic spot filtering based on vehicle type
+ * - Real-time spot availability updates
+ * - Handicapped card validation (checks handicapped.txt)
+ * - Reserved spot access (fine applied at exit if not VIP)
+ * - Color-coded spot visualization
+ * - Auto-populated entry timestamp
+ * 
+ * VALIDATION RULES:
+ * - Handicapped vehicles MUST have handicapped card = "Yes"
+ * - Handicapped license plates MUST be in handicapped.txt
+ * - Handicapped spots require valid handicapped card
+ * - All vehicle types can use Reserved spots (fine at exit if not VIP)
+ */
+public class Entry extends JFrame {
+    // Color scheme
     private Color blackColor = new Color(0, 0, 0);
     private Color blueColor = new Color(3, 78, 161);
     private Color redColor = new Color(255, 7, 7);
-    private Color whiteGreyColor = new Color(238,241,241);
+    private Color whiteGreyColor = new Color(238, 241, 241);
     private Color greenColor = new Color(46, 204, 113);
     private Color purpleColor = new Color(155, 89, 182);
     private Color yellowColor = new Color(255, 255, 51);
     private Color lightBlueColor = new Color(52, 152, 219);
+    
+    // Fonts
     private Font headerFont = new Font("SansSerif", Font.BOLD, 30);
     private Font contentFont = new Font("SansSerif", Font.BOLD, 20);
     
+    // UI Components
     private JTextField name;
     private JComboBox<String> vehicleType;
     private JComboBox<String> handicappedCard;
@@ -31,14 +60,14 @@ public class entry extends JFrame{
     private JFormattedTextField dateField;
     private JTabbedPane floorTabs;
     private JLabel selectedSpotLabel;
+    
+    // Data fields
     private String selectedSpotID = null;
     private String ticket;
-    @SuppressWarnings("unused")
-    private parkingcontroller controller;
+    private ParkingController controller;
     
-    public entry()
-    {
-        controller = new parkingcontroller();
+    public Entry() {
+        controller = new ParkingController();
         
         setTitle("Parking Lot Management System: Select Parking Spot");
         setSize(1300, 700);
@@ -56,9 +85,9 @@ public class entry extends JFrame{
         JPanel content = new JPanel(new GridBagLayout());
         content.setBackground(whiteGreyColor);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);  
+        gbc.insets = new Insets(5, 5, 5, 5);
 
-    // enter name
+        // enter name
         gbc.anchor = GridBagConstraints.EAST;
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -72,7 +101,7 @@ public class entry extends JFrame{
         name = new JTextField(50);
         content.add(name, gbc);
 
-    // choose vehicle type
+        // choose vehicle type
         gbc.gridwidth = 1;
         gbc.gridy++;
         gbc.gridx = 0;
@@ -88,7 +117,7 @@ public class entry extends JFrame{
         vehicleType.addActionListener(e -> updateAvailableSpots());
         content.add(vehicleType, gbc);
 
-    // handicapped card holder 
+        // handicapped card holder
         gbc.gridwidth = 1;
         gbc.gridy++;
         gbc.gridx = 0;
@@ -105,7 +134,7 @@ public class entry extends JFrame{
         handicappedCard.addActionListener(e -> updateAvailableSpots());
         content.add(handicappedCard, gbc);
 
-    // enter car plate
+        // enter car plate
         gbc.gridwidth = 1;
         gbc.gridy++;
         gbc.gridx = 0;
@@ -119,8 +148,7 @@ public class entry extends JFrame{
         licensePlate = new JTextField(50);
         content.add(licensePlate, gbc);
 
-
-    // enter time (filled up automatically)
+        // enter time (filled up automatically)
         gbc.gridwidth = 1;
         gbc.gridy++;
         gbc.gridx = 0;
@@ -139,7 +167,7 @@ public class entry extends JFrame{
         dateField.setEditable(false);
         content.add(dateField, gbc);
 
-    // choose spot - floor tabs
+        // choose spot - floor tabs
         gbc.gridwidth = 2;
         gbc.gridy++;
         gbc.gridx = 0;
@@ -176,7 +204,7 @@ public class entry extends JFrame{
         gbc.gridx = 0;
 
         JButton submit = new JButton("Enter Parking");
-        JButton cancel = new JButton("Back"); 
+        JButton cancel = new JButton("Back");
 
         submit.setPreferredSize(new Dimension(200, 50));
         cancel.setPreferredSize(new Dimension(150, 50));
@@ -185,8 +213,7 @@ public class entry extends JFrame{
 
         submit.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e)
-            {
+            public void actionPerformed(ActionEvent e) {
                 if (!validateBeforeSubmit()) {
                     return;
                 }
@@ -197,7 +224,7 @@ public class entry extends JFrame{
                 
                 if (save()) {
                     JOptionPane.showMessageDialog(null, "Thank you. \n Your Ticket: \n" + ticket);
-                    new dashboard().setVisible(true);
+                    new Dashboard().setVisible(true);
                     dispose();
                 }
             }
@@ -205,9 +232,8 @@ public class entry extends JFrame{
 
         cancel.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e)
-            {
-                new dashboard().setVisible(true);
+            public void actionPerformed(ActionEvent e) {
+                new Dashboard().setVisible(true);
                 dispose();
             }
         });
@@ -221,7 +247,6 @@ public class entry extends JFrame{
         content.add(buttonPanel, gbc);
 
         add(content, BorderLayout.CENTER);
-
     }
     
     private boolean validateBeforeSubmit() {
@@ -256,7 +281,6 @@ public class entry extends JFrame{
                 return false;
             }
             
-            
             if (!isHandicappedCardHolder(licensePlateText)) {
                 JOptionPane.showMessageDialog(this, 
                     "Your license plate is not registered as handicapped card holder!\nPlease contact admin to register.", 
@@ -265,11 +289,8 @@ public class entry extends JFrame{
             }
         }
         
-        parkinglot lot = parkinglot.getInstance();
+        ParkingLot lot = ParkingLot.getInstance();
         parkingspot selectedSpot = lot.findSpotByID(selectedSpotID);
-        
-        // Reserved spots: Allow anyone to park, fine will be applied at exit if not VIP member
-        // Handicapped spots: Still enforce card requirement for entry
         
         if (selectedSpot != null && selectedSpot.getType().equalsIgnoreCase("Handicapped")) {
             if (!hasHandicappedCard.equalsIgnoreCase("Yes")) {
@@ -282,7 +303,7 @@ public class entry extends JFrame{
         
         return true;
     }
-     
+    
     private boolean isHandicappedCardHolder(String plate) {
         try (BufferedReader br = new BufferedReader(new FileReader("handicapped.txt"))) {
             String line;
@@ -305,11 +326,11 @@ public class entry extends JFrame{
         
         String selectedVehicleType = (String) vehicleType.getSelectedItem();
         String hasHandicappedCard = (String) handicappedCard.getSelectedItem();
-        parkinglot lot = parkinglot.getInstance();
+        ParkingLot lot = ParkingLot.getInstance();
         
         List<String> suitableSpotTypes = getSuitableSpotTypes(selectedVehicleType);
         
-        for (floor f : lot.getFloors()) {
+        for (Floor f : lot.getFloors()) {
             List<parkingspot> availableSpots = new ArrayList<>();
             
             for (String spotType : suitableSpotTypes) {
@@ -453,9 +474,9 @@ public class entry extends JFrame{
 
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(fileName, true))) {
             bw.write(nameText + "," + (String) vehicleType.getSelectedItem() + "," + (String) handicappedCard.getSelectedItem() + "," + licensePlateText + "," + date + "," + selectedSpotID);
-            bw.newLine(); 
+            bw.newLine();
             
-            parkinglot lot = parkinglot.getInstance();
+            ParkingLot lot = ParkingLot.getInstance();
             parkingspot spot = lot.findSpotByID(selectedSpotID);
             if (spot != null) {
                 spot.occupy(licensePlateText);
@@ -468,5 +489,4 @@ public class entry extends JFrame{
             return false;
         }
     }
-
 }

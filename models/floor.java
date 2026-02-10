@@ -3,11 +3,11 @@ package models;
 import java.util.ArrayList;
 import java.util.List;
 
-public class floor {
+public class Floor {
     private int floorNumber;
     private List<parkingspot> spots;
 
-    public floor(int floorNumber) {
+    public Floor(int floorNumber) {
         this.floorNumber = floorNumber;
         this.spots = new ArrayList<>();
     }
