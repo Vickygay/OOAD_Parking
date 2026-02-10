@@ -1,44 +1,27 @@
 package views;
 import javax.swing.*;
-import javax.swing.text.DateFormatter;
-import javax.swing.text.DefaultFormatterFactory;
 
 import java.awt.*;
 import java.awt.event.*;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import models.*;
 import controllers.*;
 
 public class exit extends JFrame{
     private Color blueColor = new Color(3, 78, 161);
-    private Color redColor = new Color(255, 7, 7);
     private Color whiteGreyColor = new Color(238,241,241);
-    private Color greenColor = new Color(46, 204, 113);
     private Font headerFont = new Font("SansSerif", Font.BOLD, 30);
     private Font contentFont = new Font("SansSerif", Font.BOLD, 20);
     
     private JTextField licensePlate;
     private JTextArea detailsArea;
-    private JButton searchButton;
     private JButton processPaymentButton;
-    private JButton cancelButton;
-
-    private String vehicleType;
-    private String cardHolder;
-    private String vehiclePlateNumber;
-    private String time;
     
     private vehiclerecord currentVehicle;
     private double parkingFee;
     private double unpaidFines;
+    private double currentSessionFines;
     private double totalDue;
     private long hoursParked;
     private parkingcontroller controller;
@@ -126,7 +109,6 @@ public class exit extends JFrame{
             @Override
             public void actionPerformed(ActionEvent e)
             {
-                String plate = licensePlate.getText().trim();
                 // Search for the car
                 searchVehicle();
             }
@@ -182,19 +164,19 @@ public class exit extends JFrame{
         parkingFee = controller.calculateParkingFee(currentVehicle);
         unpaidFines = controller.getUnpaidFines(plate);
         
-        long overstayHours = hoursParked > 24 ? hoursParked : 0;
-        double currentFine = 0;
+        double overstayFine = 0;
         double reservedMisuseFine = 0;
         
-        if (overstayHours > 24) {
-            currentFine = controller.calculateFine(plate, hoursParked);
+        if (hoursParked > 24) {
+            overstayFine = controller.calculateFine(plate, hoursParked);
         }
         
         if (controller.isReservedSpotMisuse(currentVehicle)) {
             reservedMisuseFine = 100.0;
         }
         
-        totalDue = parkingFee + unpaidFines + currentFine + reservedMisuseFine;
+        currentSessionFines = overstayFine + reservedMisuseFine;
+        totalDue = parkingFee + unpaidFines + currentSessionFines;
 
         parkinglot lot = parkinglot.getInstance();
         parkingspot spot = lot.findSpotByID(currentVehicle.getSpotID());
@@ -203,62 +185,47 @@ public class exit extends JFrame{
         String exitTime = sdf.format(new java.util.Date());
 
         StringBuilder details = new StringBuilder();
-        details.append("╔════════════════════════════════════════════════════════════════════╗\n");
-        details.append("║                        PARKING RECEIPT                             ║\n");
-        details.append("╚════════════════════════════════════════════════════════════════════╝\n\n");
+        details.append("═══════════════════════════════════════════════════════════════════\n");
+        details.append("                        PARKING BILL                               \n");
+        details.append("═══════════════════════════════════════════════════════════════════\n\n");
         
         details.append("VEHICLE INFORMATION:\n");
         details.append("─────────────────────────────────────────────────────────────────────\n");
         details.append(String.format("  License Plate      : %s\n", currentVehicle.getLicensePlate()));
         details.append(String.format("  Customer Name      : %s\n", currentVehicle.getName()));
         details.append(String.format("  Vehicle Type       : %s\n", currentVehicle.getVehicleType()));
-        details.append(String.format("  Handicapped Card   : %s\n\n", currentVehicle.getHandicappedCard()));
+        details.append(String.format("  Parking Spot       : %s\n\n", currentVehicle.getSpotID()));
         
         details.append("PARKING DETAILS:\n");
         details.append("─────────────────────────────────────────────────────────────────────\n");
-        details.append(String.format("  Parking Spot       : %s\n", currentVehicle.getSpotID()));
-        details.append(String.format("  Spot Type          : %s\n", spot != null ? spot.getType() : "Unknown"));
-        details.append(String.format("  Hourly Rate        : RM %.2f/hour\n", spot != null ? spot.getHourlyRate() : 0.0));
-        
-        if (currentVehicle.getVehicleType().equalsIgnoreCase("Handicapped") && 
-            currentVehicle.getHandicappedCard().equalsIgnoreCase("Yes") &&
-            spot != null && spot.getType().equalsIgnoreCase("Handicapped")) {
-            details.append("  Special Rate       : FREE (Handicapped Card Holder)\n");
-        }
-        
         details.append(String.format("  Entry Time         : %s\n", currentVehicle.getEntryTime()));
-        details.append(String.format("  Exit Time          : %s\n", exitTime));
-        details.append(String.format("  Duration           : %d hour(s)\n\n", hoursParked));
+        details.append(String.format("  Current Time       : %s\n", exitTime));
+        details.append(String.format("  Duration           : %d hour(s)\n", hoursParked));
+        details.append(String.format("  Hourly Rate        : RM %.2f/hour\n", spot != null ? spot.getHourlyRate() : 0.0));
+        details.append(String.format("  Parking Fee        : RM %.2f\n\n", parkingFee));
         
-        details.append("PAYMENT BREAKDOWN:\n");
-        details.append("─────────────────────────────────────────────────────────────────────\n");
-        details.append(String.format("  Parking Fee        : RM %.2f  (%d hrs × RM %.2f)\n", 
-            parkingFee, hoursParked, spot != null ? spot.getHourlyRate() : 0.0));
-        
-        if (currentFine > 0) {
-            details.append(String.format("  Overstay Fine      : RM %.2f  (Overstay: %d hours)\n", 
-                currentFine, hoursParked - 24));
+        if (currentSessionFines > 0 || unpaidFines > 0) {
+            details.append("FINES:\n");
+            details.append("─────────────────────────────────────────────────────────────────────\n");
+            
+            if (hoursParked > 24) {
+                details.append(String.format("  Overstay Fine      : RM %.2f (Parked > 24 hours)\n", overstayFine));
+            }
+            
+            if (controller.isReservedSpotMisuse(currentVehicle)) {
+                details.append(String.format("  Reserved Spot Fine : RM 100.00 (Unauthorized parking)\n"));
+            }
+            
+            if (unpaidFines > 0) {
+                details.append(String.format("  Previous Unpaid    : RM %.2f\n", unpaidFines));
+            }
+            
+            details.append(String.format("\n  Total Fines        : RM %.2f\n\n", unpaidFines + currentSessionFines));
         }
         
-        if (controller.isReservedSpotMisuse(currentVehicle)) {
-            details.append(String.format("  Reserved Spot Fine : RM 100.00  (Unauthorized use)\n"));
-        }
-        
-        if (unpaidFines > 0) {
-            details.append(String.format("  Unpaid Fines       : RM %.2f  (Previous fines)\n", unpaidFines));
-        }
-        
-        details.append("─────────────────────────────────────────────────────────────────────\n");
+        details.append("═══════════════════════════════════════════════════════════════════\n");
         details.append(String.format("  TOTAL AMOUNT DUE   : RM %.2f\n", totalDue));
-        details.append("═════════════════════════════════════════════════════════════════════\n\n");
-        
-        if (hoursParked > 24) {
-            details.append("⚠ WARNING: Vehicle overstayed beyond 24 hours. Fine applied.\n");
-        }
-        
-        if (controller.isReservedSpotMisuse(currentVehicle)) {
-            details.append("⚠ WARNING: Unauthorized use of reserved parking spot. Fine applied.\n");
-        }
+        details.append("═══════════════════════════════════════════════════════════════════\n");
 
         detailsArea.setText(details.toString());
         processPaymentButton.setEnabled(true);
@@ -266,62 +233,102 @@ public class exit extends JFrame{
 
     private void processPayment() {
         if (currentVehicle == null) {
+            JOptionPane.showMessageDialog(this, "No vehicle selected!",
+                "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        String[] paymentOptions = {"Cash", "Card"};
+        double totalFines = unpaidFines + currentSessionFines;
+        boolean mustPayFines = totalFines > 500.0;
+        
+        String[] paymentChoices;
+        
+        if (mustPayFines) {
+            // FORCE payment if fines > RM 500
+            JOptionPane.showMessageDialog(this,
+                String.format("⚠ WARNING ⚠\n\nYour total unpaid fines (RM %.2f) exceed RM 500.\n\nYou MUST pay all dues to exit the parking lot.",
+                    totalFines),
+                "Payment Required",
+                JOptionPane.WARNING_MESSAGE);
+            
+            paymentChoices = new String[]{
+                "Pay All Dues (RM " + String.format("%.2f", totalDue) + ")"
+            };
+        } else if (totalFines > 0) {
+            // Optional payment if fines ≤ RM 500
+            paymentChoices = new String[]{
+                "Pay Parking Fee Only (RM " + String.format("%.2f", parkingFee) + ")",
+                "Pay All Dues (RM " + String.format("%.2f", totalDue) + ")"
+            };
+        } else {
+            // No fines, just parking fee
+            paymentChoices = new String[]{
+                "Pay (RM " + String.format("%.2f", parkingFee) + ")"
+            };
+        }
+        
         int paymentChoice = JOptionPane.showOptionDialog(
             this,
-            "Total Amount Due: RM " + String.format("%.2f", totalDue) + "\n\nSelect Payment Method:",
-            "Payment Method",
+            "Select payment option:",
+            "Payment Options",
             JOptionPane.DEFAULT_OPTION,
             JOptionPane.QUESTION_MESSAGE,
             null,
-            paymentOptions,
-            paymentOptions[0]
+            paymentChoices,
+            paymentChoices[0]
         );
 
         if (paymentChoice == -1) {
             return;
         }
 
-        String paymentMethod = paymentOptions[paymentChoice];
+        boolean payFinesNow;
+        double amountToPay;
+        
+        if (mustPayFines) {
+            // Must pay everything
+            payFinesNow = true;
+            amountToPay = totalDue;
+        } else if (totalFines > 0) {
+            // Optional - customer chose option 0 or 1
+            payFinesNow = (paymentChoice == 1);
+            amountToPay = payFinesNow ? totalDue : parkingFee;
+        } else {
+            // No fines
+            payFinesNow = false;
+            amountToPay = parkingFee;
+        }
+
+        String[] paymentMethods = {"Cash", "Card"};
+        int methodChoice = JOptionPane.showOptionDialog(
+            this,
+            "Amount to pay: RM " + String.format("%.2f", amountToPay) + "\n\nSelect payment method:",
+            "Payment Method",
+            JOptionPane.DEFAULT_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            paymentMethods,
+            paymentMethods[0]
+        );
+
+        if (methodChoice == -1) {
+            return;
+        }
+
+        String paymentMethod = paymentMethods[methodChoice];
         double amountPaid = 0;
         double change = 0;
 
         if (paymentMethod.equals("Cash")) {
-            String input = JOptionPane.showInputDialog(
-                this,
-                "Total Due: RM " + String.format("%.2f", totalDue) + "\n\nEnter cash amount received:",
-                "Cash Payment",
-                JOptionPane.QUESTION_MESSAGE
-            );
-
-            if (input == null || input.trim().isEmpty()) {
-                return;
+            Double result = processCashPayment(amountToPay);
+            if (result == null) {
+                return;  // Payment cancelled
             }
-
-            try {
-                amountPaid = Double.parseDouble(input.trim());
-                
-                if (amountPaid < totalDue) {
-                    JOptionPane.showMessageDialog(this,
-                        "Insufficient payment!\nAmount due: RM " + String.format("%.2f", totalDue) +
-                        "\nAmount received: RM " + String.format("%.2f", amountPaid),
-                        "Payment Error",
-                        JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                
-                change = amountPaid - totalDue;
-                
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(this, "Invalid amount entered!", 
-                    "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+            amountPaid = result;
+            change = amountPaid - amountToPay;
         } else {
-            amountPaid = totalDue;
+            processCardPayment(amountToPay);
+            amountPaid = amountToPay;
             change = 0;
         }
 
@@ -333,28 +340,159 @@ public class exit extends JFrame{
             return;
         }
 
-        controller.recordRevenue(totalDue, "Parking fee for " + currentVehicle.getLicensePlate());
+        controller.recordRevenue(amountPaid, "Parking fee for " + currentVehicle.getLicensePlate());
 
-        if (unpaidFines > 0) {
-            controller.markFinesPaid(currentVehicle.getLicensePlate());
-        }
-
-        long overstayHours = hoursParked > 24 ? hoursParked : 0;
-        if (overstayHours > 24) {
-            double currentFine = controller.calculateFine(currentVehicle.getLicensePlate(), hoursParked);
-            controller.addFine(currentVehicle.getLicensePlate(), currentFine, "Overstay fine");
-            controller.markFinesPaid(currentVehicle.getLicensePlate());
+        if (payFinesNow) {
+            if (unpaidFines > 0) {
+                controller.markFinesPaid(currentVehicle.getLicensePlate());
+            }
         }
         
-        if (controller.isReservedSpotMisuse(currentVehicle)) {
-            controller.addFine(currentVehicle.getLicensePlate(), 100.0, "Reserved spot misuse");
-            controller.markFinesPaid(currentVehicle.getLicensePlate());
+        if (currentSessionFines > 0) {
+            if (hoursParked > 24) {
+                double overstayFine = controller.calculateFine(currentVehicle.getLicensePlate(), hoursParked);
+                controller.addFine(currentVehicle.getLicensePlate(), overstayFine, "Overstay fine");
+                if (payFinesNow) {
+                    controller.markFinesPaid(currentVehicle.getLicensePlate());
+                }
+            }
+            
+            if (controller.isReservedSpotMisuse(currentVehicle)) {
+                controller.addFine(currentVehicle.getLicensePlate(), 100.0, "Reserved spot misuse");
+                if (payFinesNow) {
+                    controller.markFinesPaid(currentVehicle.getLicensePlate());
+                }
+            }
         }
 
-        generateReceipt(paymentMethod, amountPaid, change);
+        generateReceipt(paymentMethod, amountPaid, change, payFinesNow);
     }
 
-    private void generateReceipt(String paymentMethod, double amountPaid, double change) {
+    private Double processCashPayment(double amountToPay) {
+        double remaining = amountToPay;
+        double totalPaid = 0;
+        
+        while (remaining > 0.01) {
+            String message;
+            if (totalPaid == 0) {
+                message = String.format("Amount due: RM %.2f\n\nEnter cash amount:", amountToPay);
+            } else {
+                message = String.format("Amount due: RM %.2f\nTotal paid so far: RM %.2f\nRemaining: RM %.2f\n\nEnter cash amount:",
+                    amountToPay, totalPaid, remaining);
+            }
+            
+            String input = JOptionPane.showInputDialog(
+                this,
+                message,
+                "Cash Payment",
+                JOptionPane.QUESTION_MESSAGE
+            );
+            
+            if (input == null) {
+                int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "Payment not complete. Cancel transaction?",
+                    "Confirm Cancel",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+                );
+                if (confirm == JOptionPane.YES_OPTION) {
+                    return null;
+                }
+                continue;
+            }
+            
+            try {
+                double payment = Double.parseDouble(input.trim());
+                
+                if (payment <= 0) {
+                    JOptionPane.showMessageDialog(this,
+                        "Please enter a positive amount!",
+                        "Invalid Amount",
+                        JOptionPane.ERROR_MESSAGE);
+                    continue;
+                }
+                
+                totalPaid += payment;
+                remaining = amountToPay - totalPaid;
+                
+                if (remaining > 0.01) {
+                    JOptionPane.showMessageDialog(this,
+                        String.format("Payment received: RM %.2f\n\nRemaining balance: RM %.2f\n\nPlease continue payment...",
+                            payment, remaining),
+                        "Partial Payment",
+                        JOptionPane.INFORMATION_MESSAGE);
+                } else if (remaining < -0.01) {
+                    double changeAmount = Math.abs(remaining);
+                    JOptionPane.showMessageDialog(this,
+                        String.format("Payment received: RM %.2f\n\nChange to return: RM %.2f",
+                            payment, changeAmount),
+                        "Payment Complete",
+                        JOptionPane.INFORMATION_MESSAGE);
+                    return totalPaid;
+                } else {
+                    JOptionPane.showMessageDialog(this,
+                        "Payment complete!\n\nExact amount received.",
+                        "Payment Complete",
+                        JOptionPane.INFORMATION_MESSAGE);
+                    return totalPaid;
+                }
+                
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(this,
+                    "Invalid amount entered!\n\nPlease enter a valid number.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        
+        return totalPaid;
+    }
+
+    private void processCardPayment(double amountToPay) {
+        JDialog processingDialog = new JDialog(this, "Processing Payment", true);
+        processingDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        processingDialog.setSize(450, 180);
+        processingDialog.setLocationRelativeTo(this);
+        processingDialog.setUndecorated(false);
+        
+        JPanel panel = new JPanel(new BorderLayout(15, 15));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(3, 78, 161), 3),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        panel.setBackground(Color.WHITE);
+        
+        JLabel messageLabel = new JLabel(
+            String.format("<html><center><b>Processing card payment...</b><br><br>Amount: RM %.2f<br><br>Please wait...</center></html>",
+                amountToPay),
+            SwingConstants.CENTER
+        );
+        messageLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        
+        JProgressBar progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true);
+        progressBar.setPreferredSize(new Dimension(400, 25));
+        
+        panel.add(messageLabel, BorderLayout.CENTER);
+        panel.add(progressBar, BorderLayout.SOUTH);
+        
+        processingDialog.add(panel);
+        
+        Timer timer = new Timer(2000, e -> {
+            processingDialog.dispose();
+            JOptionPane.showMessageDialog(this,
+                String.format("✓ Card payment successful!\n\nAmount charged: RM %.2f", amountToPay),
+                "Payment Approved",
+                JOptionPane.INFORMATION_MESSAGE);
+        });
+        timer.setRepeats(false);
+        timer.start();
+        
+        processingDialog.setVisible(true);
+    }
+
+    private void generateReceipt(String paymentMethod, double amountPaid, double change, boolean paidAllFines) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String exitTime = sdf.format(new java.util.Date());
 
@@ -379,23 +517,32 @@ public class exit extends JFrame{
         receipt.append(String.format("  Exit Time          : %s\n", exitTime));
         receipt.append(String.format("  Duration           : %d hour(s)\n", hoursParked));
         receipt.append(String.format("  Hourly Rate        : RM %.2f/hour\n", spot != null ? spot.getHourlyRate() : 0.0));
-        receipt.append(String.format("  Parking Fee        : RM %.2f\n\n", parkingFee));
+        receipt.append(String.format("  Parking Fee        : RM %.2f (PAID)\n\n", parkingFee));
         
-        if (unpaidFines > 0) {
-            receipt.append(String.format("  Previous Fines     : RM %.2f\n", unpaidFines));
+        if (paidAllFines && currentSessionFines > 0) {
+            if (hoursParked > 24) {
+                double overstayFine = controller.calculateFine(currentVehicle.getLicensePlate(), hoursParked);
+                receipt.append(String.format("  Overstay Fine      : RM %.2f (PAID)\n", overstayFine));
+            }
+            
+            if (controller.isReservedSpotMisuse(currentVehicle)) {
+                receipt.append(String.format("  Reserved Spot Fine : RM 100.00 (PAID)\n"));
+            }
         }
         
-        if (hoursParked > 24) {
-            double currentFine = controller.calculateFine(currentVehicle.getLicensePlate(), hoursParked);
-            receipt.append(String.format("  Overstay Fine      : RM %.2f\n", currentFine));
+        if (paidAllFines && unpaidFines > 0) {
+            receipt.append(String.format("  Previous Fines     : RM %.2f (PAID)\n", unpaidFines));
         }
         
-        if (controller.isReservedSpotMisuse(currentVehicle)) {
-            receipt.append(String.format("  Reserved Spot Fine : RM 100.00\n"));
+        if (!paidAllFines && (currentSessionFines > 0 || unpaidFines > 0)) {
+            double unpaidTotal = currentSessionFines + unpaidFines;
+            receipt.append("\n⚠ UNPAID FINES:\n");
+            receipt.append(String.format("  Unpaid Amount      : RM %.2f\n", unpaidTotal));
+            receipt.append("  (Will be charged at next exit)\n");
         }
         
         receipt.append("─────────────────────────────────────────────────────────────────────\n");
-        receipt.append(String.format("  TOTAL AMOUNT       : RM %.2f\n\n", totalDue));
+        receipt.append(String.format("  TOTAL AMOUNT PAID  : RM %.2f\n\n", amountPaid));
         
         receipt.append("PAYMENT INFORMATION:\n");
         receipt.append("─────────────────────────────────────────────────────────────────────\n");
@@ -426,38 +573,5 @@ public class exit extends JFrame{
 
         new dashboard().setVisible(true);
         dispose();
-    }
-
-    public boolean readParkingDetails(String searchPlate)
-    {
-        String filePath = "parking.txt"; // Make sure this file exists in your project directory
-        String line;
-        String delimiter = ",";
-
-        // Use try-with-resources to ensure the reader is closed automatically
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            while ((line = br.readLine()) != null) {
-                // Split the line by the comma delimiter
-                String[] data = line.split(delimiter);
-
-                if (data.length >= 5)
-                {
-                    if (data[3].trim().equalsIgnoreCase(searchPlate))
-                    {
-                        vehicleType = data[1];
-                        cardHolder = data[2];
-                        time = data[4];
-                        return true;
-                    }
-                }
-                System.out.println();
-                
-            }
-        } catch (IOException e) {
-            // Handle exceptions such as file not found or read errors
-            System.err.println("An error occurred while reading the file: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return false;
     }
 }

@@ -13,12 +13,13 @@ import models.*;
 import controllers.*;
 
 public class entry extends JFrame{
+    private Color blackColor = new Color(0, 0, 0);
     private Color blueColor = new Color(3, 78, 161);
     private Color redColor = new Color(255, 7, 7);
     private Color whiteGreyColor = new Color(238,241,241);
     private Color greenColor = new Color(46, 204, 113);
     private Color purpleColor = new Color(155, 89, 182);
-    private Color yellowColor = new Color(241, 196, 15);
+    private Color yellowColor = new Color(255, 255, 51);
     private Color lightBlueColor = new Color(52, 152, 219);
     private Font headerFont = new Font("SansSerif", Font.BOLD, 30);
     private Font contentFont = new Font("SansSerif", Font.BOLD, 20);
@@ -32,13 +33,14 @@ public class entry extends JFrame{
     private JLabel selectedSpotLabel;
     private String selectedSpotID = null;
     private String ticket;
+    @SuppressWarnings("unused")
     private parkingcontroller controller;
     
     public entry()
     {
         controller = new parkingcontroller();
         
-        setTitle("Entry");
+        setTitle("Parking Lot Management System: Select Parking Spot");
         setSize(1300, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
@@ -81,7 +83,7 @@ public class entry extends JFrame{
 
         gbc.gridx = 1;
         gbc.anchor = GridBagConstraints.WEST;
-        String[] vehicle = {"Compact", "Regular", "Handicapped", "Reserved"};
+        String[] vehicle = {"Motorcycle", "Bicycle", "Car", "SUV", "Truck", "Handicapped"};
         vehicleType = new JComboBox<>(vehicle);
         vehicleType.addActionListener(e -> updateAvailableSpots());
         content.add(vehicleType, gbc);
@@ -99,6 +101,7 @@ public class entry extends JFrame{
         gbc.anchor = GridBagConstraints.WEST;
         String[] card = {"Yes", "No"};
         handicappedCard = new JComboBox<>(card);
+        handicappedCard.setSelectedItem("No");
         handicappedCard.addActionListener(e -> updateAvailableSpots());
         content.add(handicappedCard, gbc);
 
@@ -133,6 +136,7 @@ public class entry extends JFrame{
         dateField = new JFormattedTextField(new DefaultFormatterFactory(dateFormatter));
         dateField.setColumns(20);
         dateField.setValue(new Date());
+        dateField.setEditable(false);
         content.add(dateField, gbc);
 
     // choose spot - floor tabs
@@ -171,12 +175,11 @@ public class entry extends JFrame{
         gbc.gridy++;
         gbc.gridx = 0;
 
-        JButton submit = new JButton("Submit");
-        JButton cancel = new JButton("Cancel"); 
+        JButton submit = new JButton("Enter Parking");
+        JButton cancel = new JButton("Back"); 
 
-        submit.setPreferredSize(new Dimension(150, 50));
+        submit.setPreferredSize(new Dimension(200, 50));
         cancel.setPreferredSize(new Dimension(150, 50));
-
         submit.setFont(contentFont);
         cancel.setFont(contentFont);
 
@@ -218,8 +221,9 @@ public class entry extends JFrame{
         content.add(buttonPanel, gbc);
 
         add(content, BorderLayout.CENTER);
-    }
 
+    }
+    
     private boolean validateBeforeSubmit() {
         String nameText = name.getText().trim();
         String licensePlateText = licensePlate.getText().trim().toUpperCase();
@@ -247,7 +251,7 @@ public class entry extends JFrame{
         if (selectedType.equalsIgnoreCase("Handicapped")) {
             if (!hasHandicappedCard.equalsIgnoreCase("Yes")) {
                 JOptionPane.showMessageDialog(this, 
-                    "Handicapped card holder must select 'Yes'!", 
+                    "Handicapped vehicle must have handicapped card!", 
                     "Error", JOptionPane.ERROR_MESSAGE);
                 return false;
             }
@@ -264,6 +268,9 @@ public class entry extends JFrame{
         parkinglot lot = parkinglot.getInstance();
         parkingspot selectedSpot = lot.findSpotByID(selectedSpotID);
         
+        // Reserved spots: Allow anyone to park, fine will be applied at exit if not VIP member
+        // Handicapped spots: Still enforce card requirement for entry
+        
         if (selectedSpot != null && selectedSpot.getType().equalsIgnoreCase("Handicapped")) {
             if (!hasHandicappedCard.equalsIgnoreCase("Yes")) {
                 JOptionPane.showMessageDialog(this, 
@@ -275,21 +282,7 @@ public class entry extends JFrame{
         
         return true;
     }
-    
-    private boolean isVIPMember(String plate) {
-        try (BufferedReader br = new BufferedReader(new FileReader("reserved.txt"))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (line.trim().equalsIgnoreCase(plate)) {
-                    return true;
-                }
-            }
-        } catch (IOException e) {
-            return false;
-        }
-        return false;
-    }
-    
+     
     private boolean isHandicappedCardHolder(String plate) {
         try (BufferedReader br = new BufferedReader(new FileReader("handicapped.txt"))) {
             String line;
@@ -310,18 +303,24 @@ public class entry extends JFrame{
         selectedSpotLabel.setText("No spot selected");
         selectedSpotLabel.setForeground(redColor);
         
-        String selectedType = (String) vehicleType.getSelectedItem();
+        String selectedVehicleType = (String) vehicleType.getSelectedItem();
         String hasHandicappedCard = (String) handicappedCard.getSelectedItem();
         parkinglot lot = parkinglot.getInstance();
         
+        List<String> suitableSpotTypes = getSuitableSpotTypes(selectedVehicleType);
+        
         for (floor f : lot.getFloors()) {
-            List<parkingspot> availableSpots = f.getAvailableSpots(selectedType);
+            List<parkingspot> availableSpots = new ArrayList<>();
+            
+            for (String spotType : suitableSpotTypes) {
+                availableSpots.addAll(f.getAvailableSpots(spotType));
+            }
             
             JPanel floorPanel = new JPanel(new BorderLayout(10, 10));
             floorPanel.setBackground(Color.WHITE);
             
             if (availableSpots.isEmpty()) {
-                JLabel noSpotsLabel = new JLabel("No available " + selectedType + " spots on this floor");
+                JLabel noSpotsLabel = new JLabel("No available spots for " + selectedVehicleType + " on this floor");
                 noSpotsLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
                 noSpotsLabel.setForeground(redColor);
                 noSpotsLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -351,21 +350,38 @@ public class entry extends JFrame{
                     double displayRate = spot.getHourlyRate();
                     String rateText = "RM " + displayRate + "/hr";
                     
-                    if (spot.getType().equalsIgnoreCase("Handicapped") && hasHandicappedCard.equalsIgnoreCase("Yes")) {
-                        displayRate = 0.0;
-                        rateText = "RM 0.00/hr (FREE)";
+                    // Handle handicapped card holder discounts
+                    if (selectedVehicleType.equalsIgnoreCase("Handicapped") && 
+                        hasHandicappedCard.equalsIgnoreCase("Yes")) {
+                        
+                        double originalRate = spot.getHourlyRate();
+                        double discountedRate = originalRate - 2.0;
+                        
+                        // Cannot go below 0
+                        if (discountedRate < 0) {
+                            discountedRate = 0.0;
+                        }
+                        
+                        if (spot.getType().equalsIgnoreCase("Handicapped")) {
+                            // Handicapped spot: RM 2 - RM 2 = FREE
+                            rateText = "RM 0.00/hr (FREE)";
+                        } else {
+                            // Other spots: Original rate - RM 2 discount
+                            rateText = String.format("RM %.2f/hr (discounted RM 2.00 for handicapped card holder)", discountedRate);
+                        }
+                        
+                        displayRate = discountedRate;
                     }
                     
                     String tooltip = spot.getSpotID() + " - " + spot.getType() + " (" + rateText + ")";
                     spotBtn.setToolTipText(tooltip);
                     
-                    final double finalDisplayRate = displayRate;
                     final String finalRateText = rateText;
                     
                     spotBtn.addActionListener(e -> {
                         selectedSpotID = spot.getSpotID();
                         selectedSpotLabel.setText("Selected: " + spot.getSpotID() + " (" + spot.getType() + " - " + finalRateText + ")");
-                        selectedSpotLabel.setForeground(greenColor);
+                        selectedSpotLabel.setForeground(blackColor);
                     });
                     
                     gridPanel.add(spotBtn);
@@ -378,6 +394,40 @@ public class entry extends JFrame{
             
             floorTabs.addTab("Floor " + f.getFloorNumber(), floorPanel);
         }
+    }
+    
+    private List<String> getSuitableSpotTypes(String vehicleType) {
+        List<String> spotTypes = new ArrayList<>();
+        
+        switch (vehicleType) {
+            case "Motorcycle":
+                spotTypes.add("Compact");
+                break;
+            case "Bicycle":
+                spotTypes.add("Compact");
+                break;
+            case "Car":
+                spotTypes.add("Compact");
+                spotTypes.add("Regular");
+                spotTypes.add("Reserved");
+                break;
+            case "SUV":
+                spotTypes.add("Regular");
+                spotTypes.add("Reserved");
+                break;
+            case "Truck":
+                spotTypes.add("Regular");
+                spotTypes.add("Reserved");
+                break;
+            case "Handicapped":
+                spotTypes.add("Compact");
+                spotTypes.add("Regular");
+                spotTypes.add("Handicapped");
+                spotTypes.add("Reserved");
+                break;
+        }
+        
+        return spotTypes;
     }
     
     private Color getSpotColorByType(String type) {

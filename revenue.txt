@@ -4,3 +4,9 @@
 2026-02-09 11:14:13,2.0,Parking fee for NDE1203
 2026-02-09 11:32:23,5.0,Parking fee for QWE0976
 2026-02-09 11:35:43,110.0,Parking fee for VEV1234
+2026-02-09 15:26:01,360.0,Parking fee for ABC1234
+2026-02-09 15:38:15,155.0,Parking fee for SUV1112
+2026-02-09 16:26:37,320.0,Parking fee for XYZ5678
+2026-02-09 19:07:34,100.0,Parking fee for SUV9999
+2026-02-09 20:16:14,120.0,Parking fee for B112
+2026-02-09 20:16:49,175.0,Parking fee for SUV1110

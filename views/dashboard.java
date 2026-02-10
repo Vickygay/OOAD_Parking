@@ -5,7 +5,6 @@ import java.awt.event.*;
 
 public class dashboard extends JFrame{
     private Color blueColor = new Color(3, 78, 161);
-    private Color redColor = new Color(255, 7, 7);
     private Color whiteGreyColor = new Color(238,241,241);
     private Font headerFont = new Font("SansSerif", Font.BOLD, 30);
     private Font contentFont = new Font("SansSerif", Font.BOLD, 20);

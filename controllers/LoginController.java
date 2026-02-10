@@ -5,28 +5,26 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class logincontroller {
-
-    public logincontroller() {
-    }
+    private static final String ADMIN_FILE = "users.txt";
 
     public boolean validateLogin(String userID, String password) {
-        String line;
-        try (BufferedReader br = new BufferedReader(new FileReader("users.txt"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(ADMIN_FILE))) {
+            String line;
             while ((line = br.readLine()) != null) {
-                String[] data = line.split(","); 
-                
-                if (data.length >= 2) {
-                    String fUser = data[0].trim();
-                    String fPass = data[1].trim();
+                String[] credentials = line.split(",");
+                if (credentials.length >= 2) {
+                    String storedUserID = credentials[0].trim();
+                    String storedPassword = credentials[1].trim();
                     
-                    if (fUser.equals(userID) && fPass.equals(password)) {
+                    if (storedUserID.equals(userID) && storedPassword.equals(password)) {
                         return true;
                     }
                 }
             }
         } catch (IOException e) {
-            System.out.println("Error reading users.txt file.");
+            System.err.println("Error reading admin file: " + e.getMessage());
         }
+        
         return false;
     }
 }
